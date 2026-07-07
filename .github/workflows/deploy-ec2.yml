@@ -69,20 +69,41 @@ jobs:
           echo "RELEASE_DIR=$RELEASE_DIR" >> "$GITHUB_ENV"
           echo "RELEASE_SHA=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_ENV"
 
+      - name: Resolve SSH host (IPv4)
+        env:
+          RAW_EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          set -euo pipefail
+          HOST="$RAW_EC2_HOST"
+          HOST="${HOST#http://}"
+          HOST="${HOST#https://}"
+          HOST="${HOST%%/*}"
+
+          if [[ "$HOST" != *:* ]]; then
+            RESOLVED_IPV4="$(getent ahostsv4 "$HOST" | awk 'NR==1 { print $1 }')"
+            if [[ -n "$RESOLVED_IPV4" ]]; then
+              HOST="$RESOLVED_IPV4"
+            fi
+          fi
+
+          echo "SSH_HOST=$HOST" >> "$GITHUB_ENV"
+
       - name: Rsync to EC2
         uses: burnett01/rsync-deployments@7.0.1
         with:
           switches: -avzr --delete
           path: ${{ env.RELEASE_DIR }}/
           remote_path: /var/www/nest-book-store/releases/${{ env.RELEASE_SHA }}/
-          remote_host: ${{ secrets.EC2_HOST }}
+          remote_host: ${{ env.SSH_HOST }}
           remote_user: ubuntu
           remote_key: ${{ secrets.EC2_SSH_KEY }}
+          rsh: ssh -o ConnectTimeout=30 -o ConnectionAttempts=3 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -4
 
       - name: Activate release and restart
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.EC2_HOST }}
+          host: ${{ env.SSH_HOST }}
+          protocol: tcp4
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
