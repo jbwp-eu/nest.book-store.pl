@@ -1,0 +1,41 @@
+import * as Joi from 'joi';
+
+export const configSchema = Joi.object({
+  PORT: Joi.number().default(3004),
+  HOST: Joi.string().default('127.0.0.1'),
+  DB_HOST: Joi.string().required(),
+  DB_PORT: Joi.number().default(5432),
+  DB_USERNAME: Joi.string().required(),
+  DB_PASSWORD: Joi.string().required(),
+  DB_NAME: Joi.string().required(),
+  JWT_SECRET: Joi.string().required(),
+  PAGINATION_LIMIT: Joi.number().default(5),
+  TAX: Joi.number().default(0),
+  CLOUDFRONT_KEY_PAIR_ID: Joi.string().optional(),
+  CLOUDFRONT_PRIVATE_KEY: Joi.string().optional(),
+  CLOUDFRONT_BASE_URL: Joi.string()
+    .uri()
+    .optional()
+    .default('https://d8gge2z531r61.cloudfront.net/'),
+  AWS_BUCKET_NAME_2: Joi.string().optional(),
+  AWS_BUCKET_REGION_2: Joi.string().optional(),
+  AWS_ACCESS_KEY_2: Joi.string().optional(),
+  AWS_SECRET_KEY_2: Joi.string().optional(),
+  CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional(),
+  STRIPE_SECRET_KEY_TEST_MODE: Joi.string().required(),
+  STRIPE_WEBHOOK_SECRET_TEST_MODE: Joi.string().required(),
+  SMTP_HOST: Joi.string().optional(),
+  SMTP_PORT: Joi.number().default(465),
+  SMTP_USER: Joi.string().optional(),
+  SMTP_PASSWORD: Joi.string().optional(),
+  DOMAIN: Joi.string().optional(),
+  TO_3: Joi.string().optional(),
+  TO_1: Joi.string().optional(),
+  TO_2: Joi.string().optional(),
+  ADMIN_PASSWORD: Joi.string().optional(),
+  RATE_LIMIT_SENSITIVE_WINDOW_MS: Joi.number().default(900_000),
+  RATE_LIMIT_SENSITIVE_MAX: Joi.number().default(20),
+  STORE_ADDRESS: Joi.string().optional().allow(''),
+  GOOGLE_MAPS_API_KEY_geocoding: Joi.string().optional().allow(''),
+  CURRENCY: Joi.string().valid('PLN', 'pln').default('PLN'),
+});

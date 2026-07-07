@@ -1,0 +1,22 @@
+# /etc/caddy/Caddyfile — nest.book-store.pl
+# Etap 1: jeden EC2, Nest na 127.0.0.1:3004, frontend jako pliki statyczne
+
+nest.book-store.pl {
+	# API Nest (prefix /api w aplikacji)
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3004
+	}
+
+	# Socket.IO (czat przy zamówieniu)
+	handle /socket.io/* {
+		reverse_proxy 127.0.0.1:3004
+	}
+
+	# React SPA (build: frontend/dist) — osobny handle, żeby nie przechwytywał /api/*
+	handle {
+		root * /var/www/nest-book-store/current/frontend/dist
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+}
