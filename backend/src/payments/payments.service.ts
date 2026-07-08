@@ -19,6 +19,7 @@ import { I18nService } from 'nestjs-i18n';
 import { DataSource, Repository } from 'typeorm';
 
 import { MailService } from '../common/mail/mail.service';
+import { OrderConfirmationQueueService } from '../common/mail/order-confirmation-queue.service';
 
 import { Order } from '../orders/order.entity';
 
@@ -61,6 +62,8 @@ export class PaymentsService {
     private readonly stripeService: StripeService,
 
     private readonly mailService: MailService,
+
+    private readonly orderConfirmationQueue: OrderConfirmationQueueService,
 
     private readonly i18n: I18nService,
 
@@ -106,7 +109,7 @@ export class PaymentsService {
 
 
   async createPaymentIntent(dto: CreatePaymentIntentDto) {
-    console.log("id:", dto.id);
+ 
     const order = await this.orderRepository.findOne({
       where: { id: dto.id },
     });
@@ -209,10 +212,12 @@ export class PaymentsService {
     }
 
     try {
-      await this.mailService.sendPurchaseReceipt(result.orderId);
+    //  this.mailService.sendPurchaseReceipt(result.orderId);
+      await this.notifyPurchaseReceipt(result.orderId);
     } catch (err) {
+
       this.logger.warn(
-        `Purchase receipt email failed for order ${result.orderId}`,
+        `Purchase receipt notification failed for order ${result.orderId}`,
         err instanceof Error ? err.stack : err,
       );
     }
@@ -251,6 +256,15 @@ export class PaymentsService {
 
   }
 
+
+  private async notifyPurchaseReceipt(orderId: string): Promise<void> {
+    const enqueued = await this.orderConfirmationQueue.tryEnqueue(orderId);
+    if (enqueued) {
+      return;
+    }
+
+    // await this.mailService.sendPurchaseReceipt(orderId);
+  }
 
   private async markOrderPaid(
     order: Order,

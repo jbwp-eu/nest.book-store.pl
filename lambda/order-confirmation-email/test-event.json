@@ -1,0 +1,7 @@
+{
+  "Records": [
+    {
+      "body": "{\"orderId\":\"550e8400-e29b-41d4-a716-446655440000\",\"userEmail\":\"you@example.com\",\"userName\":\"Jan Kowalski\",\"itemsPrice\":49.99,\"shippingPrice\":10.00,\"totalPrice\":59.99,\"paidAt\":\"2026-07-07T12:00:00.000Z\",\"items\":[{\"title\":\"Aptekarka\",\"quantity\":1,\"price\":49.99}],\"shippingAddress\":{\"address\":\"ul. Test 1\",\"city\":\"Warszawa\",\"code\":\"00-001\"},\"adminEmail\":\"admin@test.pl\"}"
+    }
+  ]
+}

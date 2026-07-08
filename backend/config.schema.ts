@@ -22,6 +22,8 @@ export const configSchema = Joi.object({
   AWS_ACCESS_KEY_2: Joi.string().optional(),
   AWS_SECRET_KEY_2: Joi.string().optional(),
   CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional(),
+  ORDER_CONFIRMATION_QUEUE_URL: Joi.string().uri().optional().allow(''),
+  AWS_REGION: Joi.string().default('eu-central-1'),
   STRIPE_SECRET_KEY_TEST_MODE: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET_TEST_MODE: Joi.string().required(),
   SMTP_HOST: Joi.string().optional(),

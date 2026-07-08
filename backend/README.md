@@ -89,7 +89,8 @@ Konto admina po imporcie:
 | `ADMIN_PASSWORD` | Hasło admina w seedzie | wymagane przy `-i` |
 | `STORE_ADDRESS` | Adres sklepu (mapa) | opcjonalne |
 | `CLOUDFRONT_*`, `AWS_*` | Obrazy produktów | opcjonalne (admin upload) |
-| `SMTP_*`, `DOMAIN`, `TO_*` | E-mail po zakupie (webhook) | opcjonalne |
+| `ORDER_CONFIRMATION_QUEUE_URL`, `AWS_REGION` | Mail po zakupie via SQS + Lambda (prod) | opcjonalne |
+| `SMTP_*`, `DOMAIN`, `TO_*` | Mail po zakupie (fallback lokalny) lub formularz kontaktowy | opcjonalne |
 
 Pełna lista i walidacja: `config.schema.ts`.
 

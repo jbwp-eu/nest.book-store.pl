@@ -1,0 +1,7 @@
+{
+  "name": "nest-book-store",
+  "private": true,
+  "scripts": {
+    "lambda:package:order-email": "npm install --omit=dev --prefix lambda/order-confirmation-email && node scripts/package-order-email-lambda.mjs"
+  }
+}

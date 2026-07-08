@@ -457,16 +457,16 @@ Workflow `.github/workflows/deploy-ec2.yml` (wzorzec gql v2):
 
 ### Etap 5 — usprawnienia AWS (opcjonalnie)
 
-| Usługa              | Zastosowanie                                                                              |
-| ------------------- | ----------------------------------------------------------------------------------------- |
-| **Elastic IP**      | stały adres EC2                                                                           |
-| **Lambda**          | wysyłka maila po zakupie (zamiast SMTP w Nest) — jak w gql `order-confirmation-lambda.md` |
-| **S3**              | hosting `frontend/dist` + CloudFront (oddzielenie static od API) — opcjonalnie            |
-| **Secrets Manager** | `.env.production` zamiast pliku na dysku                                                  |
-| **CloudWatch**      | logi systemd → agent                                                                      |
-| **ALB**             | dopiero przy 2+ instancjach Nest                                                          |
+| Usługa              | Zastosowanie                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Elastic IP**      | stały adres EC2                                                                                                      |
+| **Lambda**          | wysyłka maila po zakupie (zamiast SMTP w Nest) — [deploy/order-confirmation-lambda.md](order-confirmation-lambda.md) |
+| **S3**              | hosting `frontend/dist` + CloudFront (oddzielenie static od API) — opcjonalnie                                       |
+| **Secrets Manager** | `.env.production` zamiast pliku na dysku                                                                             |
+| **CloudWatch**      | logi systemd → agent                                                                                                 |
+| **ALB**             | dopiero przy 2+ instancjach Nest                                                                                     |
 
-### Etap 6 — własna VPC (nauka sieci)
+### Etap 6 — własny VPC
 
 1. VPC `10.0.0.0/16`
 2. Public subnet `10.0.1.0/24` + Internet Gateway → EC2 z Caddy
