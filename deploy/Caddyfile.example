@@ -1,4 +1,5 @@
 # /etc/caddy/Caddyfile — nest.book-store.pl
+# Alternatywa: NGINX — deploy/nginx.md + deploy/nginx-nest-book-store.example
 # Etap 1: jeden EC2, Nest na 127.0.0.1:3004, frontend jako pliki statyczne
 
 nest.book-store.pl {

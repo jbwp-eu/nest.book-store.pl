@@ -2,7 +2,8 @@
 # Run from GitHub Actions after deploy (public URL checks).
 set -euo pipefail
 
-BASE="${DEPLOY_BASE_URL:-https://nest.book-store.pl}"
+# BASE="${DEPLOY_BASE_URL:-https://nest.book-store.pl}"
+BASE="${DEPLOY_BASE_URL:-https://nest.book-store.com.pl}"
 BASE="${BASE%/}"
 
 echo "==> GET $BASE/"

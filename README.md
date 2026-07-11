@@ -97,9 +97,9 @@ cd frontend && npm run cy:run
 ## Planowane kroki
 
 1. **CI** — GitHub Actions: `npm test` + `npm run build` (backend i frontend), potem backend e2e, na końcu Cypress
-2. **Deployment AWS** — jeden EC2 (Nest + PostgreSQL + Caddy), szczegóły: [deploy/README.md](./deploy/README.md)
+2. **Deployment** — produkcja na **OVH VPS** (`nest.book-store.com.pl`): [deploy/ovh.md](./deploy/ovh.md). AWS EC2 (`nest.book-store.pl`) — deploy ręczny, gdy instancja włączona: [deploy/README.md](./deploy/README.md)
 
-Szczegółowy plan etapowy (VPC, Docker, NGINX, Lambda): [deploy/README.md](./deploy/README.md).
+Szczegółowy plan etapowy (VPC, Docker, NGINX/Caddy, Lambda): [deploy/README.md](./deploy/README.md). OVH: [deploy/ovh.md](./deploy/ovh.md). NGINX: [deploy/nginx.md](./deploy/nginx.md).
 
 ## Stack (skrót)
 

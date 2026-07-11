@@ -263,7 +263,7 @@ export class PaymentsService {
       return;
     }
 
-    // await this.mailService.sendPurchaseReceipt(orderId);
+    await this.mailService.sendPurchaseReceipt(orderId);
   }
 
   private async markOrderPaid(

@@ -1,0 +1,67 @@
+# /etc/nginx/sites-available/nest-book-store
+# Reverse proxy dla nest.book-store.pl — alternatywa dla deploy/Caddyfile.example
+# Instrukcja: deploy/nginx.md
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# --- Przed certbot: wystarczy ten blok (port 80). Potem: certbot --nginx -d nest.book-store.pl
+# --- Po certbot: ten sam plik dostanie ssl_certificate* i często osobny server { listen 443 ... }
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name nest.book-store.pl;
+
+    root /var/www/nest-book-store/current/frontend/dist;
+    index index.html;
+
+    # Let's Encrypt (certbot webroot — opcjonalnie, jeśli nie używasz certbot --nginx)
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # API Nest (global prefix /api w aplikacji)
+    location /api/ {
+        proxy_pass http://127.0.0.1:3004;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Socket.IO (czat przy zamówieniu)
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:3004;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # React SPA — try_files jak Caddy try_files {path} /index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types
+        text/plain
+        text/css
+        application/json
+        application/javascript
+        text/xml
+        application/xml
+        application/xml+rss
+        text/javascript
+        image/svg+xml;
+}

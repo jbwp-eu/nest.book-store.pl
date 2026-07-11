@@ -1,6 +1,6 @@
 # Deploy AWS — nest.book-store.pl (plan etapowy)
 
-Plan wdrożenia aplikacji **NestJS + React + PostgreSQL** na AWS z GitHub Actions, Caddy i późniejszą opcją Docker / NGINX.
+Plan wdrożenia aplikacji **NestJS + React + PostgreSQL** na AWS z GitHub Actions, reverse proxy (**Caddy** lub **NGINX**) i opcją Docker.
 
 ## Rekomendacja architektury (start)
 
@@ -8,25 +8,27 @@ Plan wdrożenia aplikacji **NestJS + React + PostgreSQL** na AWS z GitHub Action
 
 | Decyzja             | Rekomendacja                                         | Dlaczego                                                       |
 | ------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| Liczba EC2          | **1** (app + DB + Caddy)                             | Najprostsze, tanie, wystarczające na mały ruch                 |
+| Liczba EC2          | **1** (app + DB + reverse proxy)                     | Najprostsze, tanie, wystarczające na mały ruch                 |
 | VPC                 | **Default VPC** na etapie 1                          | Zero konfiguracji sieci; później własna VPC do nauki           |
-| Subnet              | **Public** + auto public IP                          | Caddy musi być dostępny z internetu (80/443)                   |
+| Subnet              | **Public** + auto public IP                          | Proxy (Caddy/NGINX) musi być dostępny z internetu (80/443)     |
 | PostgreSQL          | **Na tym samym EC2**, `listen_addresses = localhost` | Zgodnie z założeniem; port 5432 **nie** w Security Group       |
 | Load Balancer (ALB) | **Nie** na start                                     | Koszt + złożoność bez korzyści przy 1 instancji                |
-| Lambda              | **Później** (etap 4)                                 | Np. mail po zakupie, nie główna aplikacja                      |
-| Caddy               | **Tak**                                              | HTTPS automatycznie, prosty reverse proxy                      |
+| Lambda              | **Później** (etap 4)                                 | Np. mail po zakupie — [order-confirmation-lambda.md](order-confirmation-lambda.md) |
+| Reverse proxy       | **Caddy** (prościej) **lub NGINX**                   | Caddy: [Caddyfile.example](Caddyfile.example); NGINX: [nginx.md](nginx.md) |
 | S3 + CloudFront     | **Już w projekcie**                                  | Obrazy produktów (admin upload) — zostawić                     |
 | Elastic IP          | **Opcjonalnie**                                      | Bez EIP: po stop/start EC2 trzeba zaktualizować DNS w Route 53 |
 
 ### Dwa EC2 — dopiero etap 3 (opcjonalnie)
 
 ```
-Internet → EC2 #1 (public): Caddy + Nest + frontend static
+Internet → EC2 #1 (public): Caddy **lub** NGINX + Nest + frontend static
               ↓  (prywatna komunikacja, SG)
            EC2 #2 (private subnet): PostgreSQL
 ```
 
 ## Schemat ruchu (etap 1 — jeden EC2)
+
+Wariant **Caddy** (domyślny w przykładzie):
 
 ```
 Użytkownik
@@ -47,7 +49,9 @@ NestJS (systemd) :3004
 PostgreSQL :5432  (tylko 127.0.0.1)
 ```
 
-**Stripe webhook:** `https://nest.book-store.pl/api/webhooks/stripe` (przez Caddy → Nest).
+Wariant **NGINX**: ta sama ścieżka ruchu, TLS przez **certbot** — [nginx.md](nginx.md).
+
+**Stripe webhook:** `https://nest.book-store.pl/api/webhooks/stripe` (przez proxy → Nest).
 
 ---
 
@@ -56,8 +60,8 @@ PostgreSQL :5432  (tylko 127.0.0.1)
 | Port | Źródło                                  | Usługa                          |
 | ---- | --------------------------------------- | ------------------------------- |
 | 22   | Twoje IP (+ opcjonalnie GitHub Actions) | SSH                             |
-| 80   | 0.0.0.0/0                               | Caddy (redirect + ACME)         |
-| 443  | 0.0.0.0/0                               | Caddy (HTTPS)                   |
+| 80   | 0.0.0.0/0                               | HTTP (ACME / redirect → HTTPS)  |
+| 443  | 0.0.0.0/0                               | HTTPS (Caddy lub NGINX)         |
 | 3004 | —                                       | **zamknięty** (tylko localhost) |
 | 5432 | —                                       | **zamknięty** (tylko localhost) |
 
@@ -108,7 +112,9 @@ Na EC2 jako `ubuntu`:
 
 1. Node.js 22, git, build-essential, rsync
 2. **PostgreSQL** — instalacja, utworzenie DB/użytkownika, `listen_addresses = 'localhost'` → [Instalacja PostgreSQL na EC2](#instalacja-postgresql-na-ec2)
-3. **Caddy** — instalacja, `Caddyfile` (przykład w `deploy/Caddyfile.example`)
+3. **Reverse proxy** — wybierz **jeden**:
+   - **Caddy** (prościej, auto-TLS) — [Caddyfile.example](Caddyfile.example)
+   - **NGINX** + certbot — [nginx.md](nginx.md), [nginx-nest-book-store.example](nginx-nest-book-store.example)
 4. Katalogi aplikacji (jednorazowo, wymaga `sudo` — `/var/www` domyślnie należy do root):
 
 ```bash
@@ -272,7 +278,7 @@ Weryfikacja seeda (API — frontend nie jest potrzebny):
 curl -sS http://127.0.0.1:3004/api/products | head
 ```
 
-Logowanie admina **w przeglądarce** (`admin@test.pl` + `ADMIN_PASSWORD` z `.env`) dopiero po pełnym deployu: frontend wgrany, `ln -sfn` → `current`, restart Caddy/Nest — patrz [Smoke test](#4-smoke-test).
+Logowanie admina **w przeglądarce** (`admin@test.pl` + `ADMIN_PASSWORD` z `.env`) dopiero po pełnym deployu: frontend wgrany, `ln -sfn` → `current`, restart Nest (i ewentualnie proxy po zmianie konfiguracji) — patrz [Smoke test](#4-smoke-test).
 
 ### 8. TypeORM na produkcji
 
@@ -409,7 +415,7 @@ W przeglądarce: [https://nest.book-store.pl](https://nest.book-store.pl) — ka
 
 ### Checklist przed pierwszym deployem
 
-- [ ] Caddy: `root` → `.../current/frontend/dist`, proxy `/api/*` i `/socket.io/*` → `127.0.0.1:3004` (patrz `deploy/Caddyfile.example`)
+- [ ] Reverse proxy: **Caddy** (`deploy/Caddyfile.example`) **lub NGINX** (`deploy/nginx.md` + `nginx-nest-book-store.example`) — `root` → `.../current/frontend/dist`, proxy `/api/*` i `/socket.io/*` → `127.0.0.1:3004`
 - [ ] systemd: `WorkingDirectory=/var/www/nest-book-store/current/backend`, `EnvironmentFile=.../shared/.env.production`
 - [ ] `.env.production`: `DB_*`, `JWT_SECRET`, `STRIPE_*`, `ADMIN_PASSWORD`
 - [ ] Frontend zbudowany z `VITE_BACKEND_URL=https://nest.book-store.pl/api`
@@ -433,18 +439,44 @@ Trigger: `push` / `pull_request` na `main`.
 
 Cypress — osobny job lub etap 3b (wolniejszy, wymaga uruchomionych serwisów).
 
-### Etap 4 — CD (GitHub Actions → EC2)
+### Etap 4 — CD (GitHub Actions)
 
-Workflow `.github/workflows/deploy-ec2.yml` (wzorzec gql v2):
+**OVH VPS (produkcja)** — `.github/workflows/deploy-ovh.yml`:
 
-1. `needs: ci` — testy muszą przejść
-2. Build frontendu z sekretami `VITE_*` (Stripe, Maps…)
-3. Build backendu (`nest build`)
-4. Rsync do `/var/www/nest-book-store/releases/<sha>/`
-5. SSH: `activate-release.sh <sha>` → `npm ci --omit=dev` w release, symlink `current`, restart systemd
-6. Smoke test: `GET /`, `GET /api/products`, opcjonalnie login admina
+1. Trigger: po sukcesie CI na `main` lub `workflow_dispatch`
+2. Build frontendu z `OVH_DEPLOY_BASE_URL` i sekretami `VITE_*`
+3. Build backendu, rsync, `activate-release.sh`, smoke test
 
-**GitHub Secrets:**
+Szczegóły bootstrapu: [ovh.md](ovh.md).
+
+**Mail na OVH:** w `shared/.env.production` zakomentuj `ORDER_CONFIRMATION_QUEUE_URL`
+(bez SQS/Lambda mail idzie przez SMTP). Szczegóły: [ovh.md — Mail po zakupie](ovh.md#mail-po-zakupie-smtp-bez-aws).
+
+**AWS EC2 (wyłączone auto-deploy)** — `.github/workflows/deploy-ec2.yml`:
+
+- Tylko `workflow_dispatch` (instancja zatrzymana)
+- Domena: `nest.book-store.pl`, zmienna `DEPLOY_BASE_URL`
+
+Wspólny wzorzec deployu:
+
+1. Build frontendu z sekretami `VITE_*` (Stripe, Maps…)
+2. Build backendu (`nest build`)
+3. Rsync do `/var/www/nest-book-store/releases/<sha>/`
+4. SSH: `activate-release.sh <sha>` → `npm ci --omit=dev` w release, symlink `current`, restart systemd
+5. Smoke test: `GET /`, `GET /api/products`, opcjonalnie login admina
+
+**GitHub Secrets (OVH):**
+
+| Secret                                  | Opis             |
+| --------------------------------------- | ---------------- |
+| `OVH_HOST`                              | hostname lub IP  |
+| `OVH_SSH_KEY`                           | private klucz deploy (bez passphrase) — [ovh.md](ovh.md#klucz-ssh-deploy) |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu  |
+| `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie      |
+
+**Variable (OVH):** `OVH_DEPLOY_BASE_URL=https://nest.book-store.com.pl`
+
+**GitHub Secrets (EC2, ręczny deploy):**
 
 | Secret                                  | Opis             |
 | --------------------------------------- | ---------------- |
@@ -453,7 +485,7 @@ Workflow `.github/workflows/deploy-ec2.yml` (wzorzec gql v2):
 | `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu  |
 | `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie      |
 
-**Variable:** `DEPLOY_BASE_URL=https://nest.book-store.com.pl`
+**Variable (EC2):** `DEPLOY_BASE_URL=https://nest.book-store.pl`
 
 ### Etap 5 — usprawnienia AWS (opcjonalnie)
 
@@ -495,24 +527,30 @@ GitHub Actions: build obrazów → rsync `docker-compose.yml` + `docker pull` / 
 
 Zacznij od **7a** — ten sam EC2, zamiana systemd na Compose.
 
-### Etap 8 — NGINX zamiast Caddy
+### Etap 8 — NGINX jako alternatywa dla Caddy
 
-Ta sama topologia — zamiana tylko warstwy reverse proxy:
+Od początku możesz użyć NGINX zamiast Caddy — pełna instrukcja: **[nginx.md](nginx.md)**.
 
-- `/etc/nginx/sites-available/nest-book-store`
-- `certbot --nginx` zamiast automatycznego TLS w Caddy
-- Porównaj konfigurację z `Caddyfile.example`
+Pliki:
+
+- `deploy/nginx-nest-book-store.example` → `/etc/nginx/sites-available/nest-book-store`
+- `certbot --nginx -d nest.book-store.pl` zamiast automatycznego TLS w Caddy
+- Mapowanie reguł: [nginx.md — Caddy ↔ NGINX](nginx.md#mapowanie-reguł-caddy--nginx)
+
+Migracja w obie strony (Caddy ↔ NGINX) bez zmiany deployu GitHub Actions.
 
 ---
 
 ## Caddy vs NGINX vs ALB
 
-|              | Caddy (etap 1–7a) | NGINX (etap 8)                     | ALB                     |
-| ------------ | ----------------- | ---------------------------------- | ----------------------- |
-| TLS          | automatyczny      | certbot                            | cert na ALB lub backend |
-| Konfiguracja | krótka            | więcej plików                      | AWS Console / Terraform |
-| WebSocket    | `reverse_proxy`   | `proxy_http_version 1.1` + Upgrade | obsługiwane             |
-| Koszt        | 0                 | 0                                  | ~$16+/mies.             |
+|              | Caddy                          | NGINX                              | ALB                     |
+| ------------ | ------------------------------ | ---------------------------------- | ----------------------- |
+| Kiedy        | start / mniej konfiguracji     | nauka NGINX, istniejący stack      | 2+ instancje, AWS-native |
+| TLS          | automatyczny                   | certbot                            | cert na ALB lub backend |
+| Konfiguracja | krótka (`Caddyfile.example`)   | vhost (`nginx-nest-book-store.example`) | AWS Console / Terraform |
+| WebSocket    | `reverse_proxy`                | `proxy_http_version 1.1` + Upgrade | obsługiwane             |
+| Dokumentacja | `Caddyfile.example`            | [nginx.md](nginx.md)               | —                       |
+| Koszt        | 0                              | 0                                  | ~$16+/mies.             |
 
 ---
 
@@ -533,7 +571,7 @@ Etap 0  Przygotowanie repo + DNS
    ↓
 Etap 1  EC2 + SG + Route 53 (default VPC)
    ↓
-Etap 2  Bootstrap: Postgres, Caddy, systemd, .env
+Etap 2  Bootstrap: Postgres, Caddy **lub** NGINX, systemd, .env
    ↓
 Etap 3  GitHub Actions CI (testy)
    ↓
@@ -545,7 +583,7 @@ Etap 6  Własna VPC + 2 EC2 (nauka)
    ↓
 Etap 7  Docker Compose na EC2
    ↓
-Etap 8  NGINX zamiast Caddy
+Etap 8  NGINX ↔ Caddy (alternatywa proxy, opcjonalnie)
 ```
 
 ---
@@ -557,6 +595,7 @@ Masz już EC2, DNS i bootstrap — wykonaj [Pierwszy deploy ręczny](#pierwszy-d
 - `deploy/activate-release.sh`
 - `deploy/smoke-test.sh`
 - `.github/workflows/ci.yml`
-- `.github/workflows/deploy-ec2.yml`
+- `.github/workflows/deploy-ovh.yml`
+- `.github/workflows/deploy-ec2.yml` (tylko ręcznie)
 
-Pliki `deploy/Caddyfile.example` i `deploy/nest-book-store.service.example` są już w repo.
+Pliki `deploy/Caddyfile.example`, `deploy/nginx-nest-book-store.example`, `deploy/nginx.md` i `deploy/nest-book-store.service.example` są już w repo.
