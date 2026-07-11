@@ -217,7 +217,14 @@ function OrderPage() {
           {order.OrderItems.map((item) => (
             <div key={item.id} className="flex justify-between gap-4">
               <span>
-                {item.title} × {item.quantity}
+                <Link
+                  to={`/product/${item.product}`}
+                  className="text-primary hover:underline"
+                >
+                  {item.title}
+                </Link>
+                {" × "}
+                {item.quantity}
               </span>
               <span>
                 {formatCurrency(Number(item.price) * item.quantity)}
