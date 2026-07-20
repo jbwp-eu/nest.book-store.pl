@@ -1,0 +1,53 @@
+# nest.book-store.pl — Docker Compose on a single EC2 (Etap 7a, strategy A)
+# Layout on server:
+#   /var/www/nest-book-store/docker/          ← this compose + Caddyfile
+#   /var/www/nest-book-store/shared/          ← .env.production, .env.postgres
+#   /var/www/nest-book-store/current/frontend/dist  ← SPA (symlink to release)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    env_file:
+      - /var/www/nest-book-store/shared/.env.postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookstore -d bookstore"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  nest-api:
+    image: ${API_IMAGE:-nest-book-store-api:latest}
+    env_file:
+      - /var/www/nest-book-store/shared/.env.production
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3004"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /var/www/nest-book-store/current/frontend/dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - nest-api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

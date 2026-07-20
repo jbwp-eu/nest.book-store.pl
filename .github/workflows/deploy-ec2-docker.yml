@@ -1,0 +1,123 @@
+# CD: Docker Compose on EC2 (Etap 7a, strategy A — nest.book-store.pl)
+# Bootstrap: deploy/docker/README.md
+# Secrets: EC2_HOST, EC2_SSH_KEY, VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE
+# Optional: VITE_GOOGLE_MAPS_API_KEY, DEPLOY_ADMIN_PASSWORD
+# Variables: DEPLOY_BASE_URL=https://nest.book-store.pl
+name: Deploy to EC2 (Docker)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2-docker
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      EC2_USER: ubuntu
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build frontend
+        env:
+          DEPLOY_BASE: ${{ vars.DEPLOY_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE }}
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+        run: |
+          set -euo pipefail
+          DEPLOY_BASE="${DEPLOY_BASE:-https://nest.book-store.pl}"
+          DEPLOY_BASE="${DEPLOY_BASE%/}"
+
+          npm ci --prefix frontend
+          cd frontend
+          VITE_BACKEND_URL="${DEPLOY_BASE}/api" \
+          VITE_STRIPE_CONFIRMPAYMENT_URL="${DEPLOY_BASE}" \
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE}" \
+          VITE_GOOGLE_MAPS_API_KEY="${VITE_GOOGLE_MAPS_API_KEY:-}" \
+          VITE_ASSET_URL="https://d8gge2z531r61.cloudfront.net" \
+          VITE_APP_NAME="BookStore" \
+          VITE_LANGUAGE="pl" \
+          VITE_TAX="0" \
+          npm run build
+          cd ..
+
+      - name: Build API image
+        run: |
+          set -euo pipefail
+          docker build -t "nest-book-store-api:${RELEASE_SHA}" \
+            -f deploy/docker/backend.Dockerfile backend/
+          docker save "nest-book-store-api:${RELEASE_SHA}" | gzip > api-image.tar.gz
+
+      - name: Prepare release directory
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="release-${RELEASE_SHA}"
+          mkdir -p "$RELEASE_DIR/frontend" "$RELEASE_DIR/deploy/docker"
+          cp -r frontend/dist "$RELEASE_DIR/frontend/"
+          cp deploy/docker/docker-compose.yml deploy/docker/Caddyfile \
+            deploy/docker/activate-release-docker.sh \
+            "$RELEASE_DIR/deploy/docker/"
+          chmod +x "$RELEASE_DIR/deploy/docker/activate-release-docker.sh"
+          echo "RELEASE_DIR=$RELEASE_DIR" >> "$GITHUB_ENV"
+
+      - name: Rsync release to EC2
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete
+          path: ${{ env.RELEASE_DIR }}/
+          remote_path: /var/www/nest-book-store/releases/${{ env.RELEASE_SHA }}/
+          remote_host: ${{ secrets.EC2_HOST }}
+          remote_user: ubuntu
+          remote_key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Sync Compose + Caddyfile to EC2
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --include=docker-compose.yml --include=Caddyfile --include=activate-release-docker.sh --exclude=*
+          path: deploy/docker/
+          remote_path: /var/www/nest-book-store/docker/
+          remote_host: ${{ secrets.EC2_HOST }}
+          remote_user: ubuntu
+          remote_key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Upload and load API image
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: api-image.tar.gz
+          target: /tmp/
+
+      - name: Activate release
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            gunzip -c /tmp/api-image.tar.gz | docker load
+            rm -f /tmp/api-image.tar.gz
+            cp /var/www/nest-book-store/releases/${{ env.RELEASE_SHA }}/deploy/docker/activate-release-docker.sh \
+              /var/www/nest-book-store/docker/
+            chmod +x /var/www/nest-book-store/docker/activate-release-docker.sh
+            bash /var/www/nest-book-store/docker/activate-release-docker.sh \
+              ${{ env.RELEASE_SHA }} \
+              nest-book-store-api:${{ env.RELEASE_SHA }}
+
+      - name: Smoke test (nest.book-store.pl)
+        env:
+          DEPLOY_BASE_URL: ${{ vars.DEPLOY_BASE_URL }}
+          DEPLOY_ADMIN_PASSWORD: ${{ secrets.DEPLOY_ADMIN_PASSWORD }}
+        run: |
+          export DEPLOY_BASE_URL="${DEPLOY_BASE_URL:-https://nest.book-store.pl}"
+          bash deploy/smoke-test.sh

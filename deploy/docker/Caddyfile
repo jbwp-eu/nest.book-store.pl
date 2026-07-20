@@ -1,0 +1,19 @@
+# Strategy A: nest.book-store.pl → this EC2 (Elastic IP / public DNS)
+# Mounted into caddy container at /etc/caddy/Caddyfile
+
+nest.book-store.pl {
+	handle /api/* {
+		reverse_proxy nest-api:3004
+	}
+
+	handle /socket.io/* {
+		reverse_proxy nest-api:3004
+	}
+
+	handle {
+		root * /srv/frontend
+		encode gzip
+		try_files {path} /index.html
+		file_server
+	}
+}

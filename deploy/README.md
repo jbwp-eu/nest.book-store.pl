@@ -6,17 +6,17 @@ Plan wdrożenia aplikacji **NestJS + React + PostgreSQL** na AWS z GitHub Action
 
 ### Jeden EC2 na start — tak
 
-| Decyzja             | Rekomendacja                                         | Dlaczego                                                       |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| Liczba EC2          | **1** (app + DB + reverse proxy)                     | Najprostsze, tanie, wystarczające na mały ruch                 |
-| VPC                 | **Default VPC** na etapie 1                          | Zero konfiguracji sieci; później własna VPC do nauki           |
-| Subnet              | **Public** + auto public IP                          | Proxy (Caddy/NGINX) musi być dostępny z internetu (80/443)     |
-| PostgreSQL          | **Na tym samym EC2**, `listen_addresses = localhost` | Zgodnie z założeniem; port 5432 **nie** w Security Group       |
-| Load Balancer (ALB) | **Nie** na start                                     | Koszt + złożoność bez korzyści przy 1 instancji                |
+| Decyzja             | Rekomendacja                                         | Dlaczego                                                                           |
+| ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Liczba EC2          | **1** (app + DB + reverse proxy)                     | Najprostsze, tanie, wystarczające na mały ruch                                     |
+| VPC                 | **Default VPC** na etapie 1                          | Zero konfiguracji sieci; później własna VPC                                        |
+| Subnet              | **Public** + auto public IP                          | Proxy (Caddy/NGINX) musi być dostępny z internetu (80/443)                         |
+| PostgreSQL          | **Na tym samym EC2**, `listen_addresses = localhost` | Zgodnie z założeniem; port 5432 **nie** w Security Group                           |
+| Load Balancer (ALB) | **Nie** na start                                     | Koszt + złożoność bez korzyści przy 1 instancji                                    |
 | Lambda              | **Później** (etap 4)                                 | Np. mail po zakupie — [order-confirmation-lambda.md](order-confirmation-lambda.md) |
-| Reverse proxy       | **Caddy** (prościej) **lub NGINX**                   | Caddy: [Caddyfile.example](Caddyfile.example); NGINX: [nginx.md](nginx.md) |
-| S3 + CloudFront     | **Już w projekcie**                                  | Obrazy produktów (admin upload) — zostawić                     |
-| Elastic IP          | **Opcjonalnie**                                      | Bez EIP: po stop/start EC2 trzeba zaktualizować DNS w Route 53 |
+| Reverse proxy       | **Caddy** (prościej) **lub NGINX**                   | Caddy: [Caddyfile.example](Caddyfile.example); NGINX: [nginx.md](nginx.md)         |
+| S3 + CloudFront     | **Już w projekcie**                                  | Obrazy produktów (admin upload) — zostawić                                         |
+| Elastic IP          | **Opcjonalnie**                                      | Bez EIP: po stop/start EC2 trzeba zaktualizować DNS w Route 53                     |
 
 ### Dwa EC2 — dopiero etap 3 (opcjonalnie)
 
@@ -467,12 +467,12 @@ Wspólny wzorzec deployu:
 
 **GitHub Secrets (OVH):**
 
-| Secret                                  | Opis             |
-| --------------------------------------- | ---------------- |
-| `OVH_HOST`                              | hostname lub IP  |
+| Secret                                  | Opis                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------- |
+| `OVH_HOST`                              | hostname lub IP                                                           |
 | `OVH_SSH_KEY`                           | private klucz deploy (bez passphrase) — [ovh.md](ovh.md#klucz-ssh-deploy) |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu  |
-| `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie      |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu                                                           |
+| `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie                                                               |
 
 **Variable (OVH):** `OVH_DEPLOY_BASE_URL=https://nest.book-store.com.pl`
 
@@ -508,16 +508,27 @@ Wspólny wzorzec deployu:
 
 ### Etap 7 — Docker
 
-**7a — Docker na tym samym EC2 (prostsze):**
+**7a — Docker na nowym EC2 (strategia A — `nest.book-store.pl`):**
+
+Nowa maszyna **tylko Docker** (bez systemd Nest / systemowego Postgresa).  
+DNS: **A `nest.book-store.pl` → Elastic IP** tej EC2 (czyste przełączenie).
 
 ```text
 docker compose up -d
-  ├── caddy
-  ├── nest-api
-  └── postgres
+  ├── caddy       :80/:443  (TLS, SPA, proxy)
+  ├── nest-api    :3004     (sieć Compose)
+  └── postgres    :5432     (volume pgdata)
 ```
 
-GitHub Actions: build obrazów → rsync `docker-compose.yml` + `docker pull` / build on server.
+|                                  |                                                                                         |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| Instrukcja bootstrap             | **[deploy/docker/README.md](docker/README.md)**                                         |
+| Compose / Caddyfile / Dockerfile | `deploy/docker/`                                                                        |
+| CD                               | [`.github/workflows/deploy-ec2-docker.yml`](../.github/workflows/deploy-ec2-docker.yml) |
+| EC2                              | **t3.small**, SG: 22 / 80 / 443                                                         |
+| Variable                         | `DEPLOY_BASE_URL=https://nest.book-store.pl`                                            |
+
+Stary workflow `deploy-ec2.yml` (systemd) zostaje jako v1 / archiwum — produkcja Docker = **`deploy-ec2-docker.yml`**.
 
 **7b — ECR + ECS/Fargate (zaawansowane):**
 
@@ -525,7 +536,7 @@ GitHub Actions: build obrazów → rsync `docker-compose.yml` + `docker pull` / 
 - RDS lub Postgres w kontenerze na EC2
 - ALB przed taskami
 
-Zacznij od **7a** — ten sam EC2, zamiana systemd na Compose.
+Zacznij od **7a** na nowym EC2 ze strategią A.
 
 ### Etap 8 — NGINX jako alternatywa dla Caddy
 
@@ -543,14 +554,14 @@ Migracja w obie strony (Caddy ↔ NGINX) bez zmiany deployu GitHub Actions.
 
 ## Caddy vs NGINX vs ALB
 
-|              | Caddy                          | NGINX                              | ALB                     |
-| ------------ | ------------------------------ | ---------------------------------- | ----------------------- |
-| Kiedy        | start / mniej konfiguracji     | nauka NGINX, istniejący stack      | 2+ instancje, AWS-native |
-| TLS          | automatyczny                   | certbot                            | cert na ALB lub backend |
-| Konfiguracja | krótka (`Caddyfile.example`)   | vhost (`nginx-nest-book-store.example`) | AWS Console / Terraform |
-| WebSocket    | `reverse_proxy`                | `proxy_http_version 1.1` + Upgrade | obsługiwane             |
-| Dokumentacja | `Caddyfile.example`            | [nginx.md](nginx.md)               | —                       |
-| Koszt        | 0                              | 0                                  | ~$16+/mies.             |
+|              | Caddy                        | NGINX                                   | ALB                      |
+| ------------ | ---------------------------- | --------------------------------------- | ------------------------ |
+| Kiedy        | start / mniej konfiguracji   | nauka NGINX, istniejący stack           | 2+ instancje, AWS-native |
+| TLS          | automatyczny                 | certbot                                 | cert na ALB lub backend  |
+| Konfiguracja | krótka (`Caddyfile.example`) | vhost (`nginx-nest-book-store.example`) | AWS Console / Terraform  |
+| WebSocket    | `reverse_proxy`              | `proxy_http_version 1.1` + Upgrade      | obsługiwane              |
+| Dokumentacja | `Caddyfile.example`          | [nginx.md](nginx.md)                    | —                        |
+| Koszt        | 0                            | 0                                       | ~$16+/mies.              |
 
 ---
 
@@ -581,7 +592,7 @@ Etap 5  Elastic IP, Lambda mail, CloudWatch (opcjonalnie)
    ↓
 Etap 6  Własna VPC + 2 EC2 (nauka)
    ↓
-Etap 7  Docker Compose na EC2
+Etap 7  Docker Compose na **nowym** EC2 (strategia A: nest.book-store.pl)
    ↓
 Etap 8  NGINX ↔ Caddy (alternatywa proxy, opcjonalnie)
 ```
@@ -598,4 +609,4 @@ Masz już EC2, DNS i bootstrap — wykonaj [Pierwszy deploy ręczny](#pierwszy-d
 - `.github/workflows/deploy-ovh.yml`
 - `.github/workflows/deploy-ec2.yml` (tylko ręcznie)
 
-Pliki `deploy/Caddyfile.example`, `deploy/nginx-nest-book-store.example`, `deploy/nginx.md` i `deploy/nest-book-store.service.example` są już w repo.
+Pliki `deploy/Caddyfile.example`, `deploy/nginx-nest-book-store.example`, `deploy/nginx.md`, `deploy/nest-book-store.service.example` oraz **`deploy/docker/`** (Compose v2 / strategia A) są w repo.

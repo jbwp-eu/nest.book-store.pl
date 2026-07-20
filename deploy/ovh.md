@@ -29,7 +29,7 @@ Porty **3004** (Nest) i **5432** (PostgreSQL) zostaw zamknięte — tylko `127.0
 Na VPS jako `ubuntu` (Ubuntu 24.04). Szczegóły Postgres, systemd i reverse proxy — jak w [deploy/README.md](README.md) Etap 2.
 
 1. Node.js 22, git, build-essential, rsync
-2. PostgreSQL — `listen_addresses = 'localhost'`, baza `bookstore` / użytkownik `bookstore`
+2. PostgreSQL — `listen_addresses = 'localhost'`, baza `bookstore` / użytkownik `bookstore` — DBeaver: [dbeaver-ssh-tunnel.md](dbeaver-ssh-tunnel.md)
 3. Reverse proxy — **NGINX** ([nginx.md](nginx.md)) lub **Caddy** ([Caddyfile.example](Caddyfile.example))
    - `server_name nest.book-store.com.pl;` (NGINX)
    - TLS: `sudo certbot --nginx -d nest.book-store.com.pl`

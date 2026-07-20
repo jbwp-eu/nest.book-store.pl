@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 # Run on EC2 as ubuntu after rsync (GitHub Actions CD).
 # Install copy: sudo cp deploy/activate-release.sh /usr/local/bin/activate-release.sh
