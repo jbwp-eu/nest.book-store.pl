@@ -14,7 +14,7 @@ Domena aplikacji: **nest.book-store.com.pl** (OVH). Host SSH = **IP VPS** (z pan
 - Hasło użytkownika bazy `bookstore` — z `/var/www/nest-book-store/shared/.env.production` (`DB_PASSWORD`)
 - Port SSH na VPS: **49152** (nie 22)
 
----
+--- ?
 
 ## Nowe połączenie w DBeaver
 
@@ -22,13 +22,13 @@ Domena aplikacji: **nest.book-store.com.pl** (OVH). Host SSH = **IP VPS** (z pan
 
 ### Zakładka **Main** (PostgreSQL)
 
-| Pole | Wartość |
-| ---- | ------- |
-| **Host** | `127.0.0.1` lub `localhost` |
-| **Port** | `5432` |
-| **Database** | `bookstore` |
-| **Username** | `bookstore` |
-| **Password** | hasło z `DB_PASSWORD` na serwerze |
+| Pole              | Wartość                                |
+| ----------------- | -------------------------------------- |
+| **Host**          | `127.0.0.1` lub `localhost`            |
+| **Port**          | `5432`                                 |
+| **Database**      | `bookstore`                            |
+| **Username**      | `bookstore`                            |
+| **Password**      | hasło z `DB_PASSWORD` na serwerze      |
 | **Save password** | opcjonalnie (tylko lokalnie w DBeaver) |
 
 > **Uwaga:** Domyślna baza `postgres` jest pusta — tabele sklepu są w **`bookstore`**.
@@ -39,14 +39,14 @@ Domena aplikacji: **nest.book-store.com.pl** (OVH). Host SSH = **IP VPS** (z pan
 
 Włącz: **Use SSH Tunnel** ✓
 
-| Pole | Wartość |
-| ---- | ------- |
-| **Host/IP** | publiczny IP VPS (np. z DNS `nest.book-store.com.pl`) |
-| **Port** | `49152` |
-| **Username** | `ubuntu` |
-| **Authentication method** | **Public Key** |
-| **Private key** | ścieżka do **osobistego** klucza prywatnego, np. `C:\Users\<user>\.ssh\id_ed25519` |
-| **Passphrase** | hasło do klucza SSH (jeśli ustawione) |
+| Pole                      | Wartość                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| **Host/IP**               | publiczny IP VPS (np. z DNS `nest.book-store.com.pl`)                              |
+| **Port**                  | `49152`                                                                            |
+| **Username**              | `ubuntu`                                                                           |
+| **Authentication method** | **Public Key**                                                                     |
+| **Private key**           | ścieżka do **osobistego** klucza prywatnego, np. `C:\Users\<user>\.ssh\id_ed25519` |
+| **Passphrase**            | hasło do klucza SSH (jeśli ustawione)                                              |
 
 Alternatywa: **Save credentials in secure storage** (Windows Credential Manager).
 
@@ -83,10 +83,10 @@ ssh -p 49152 -L 5433:127.0.0.1:5432 ubuntu@TWOJE_IP_VPS
 
 W drugim oknie / w DBeaver (bez zakładki SSH, tylko Main):
 
-| Pole | Wartość |
-| ---- | ------- |
-| Host | `127.0.0.1` |
-| Port | `5433` |
+| Pole     | Wartość     |
+| -------- | ----------- |
+| Host     | `127.0.0.1` |
+| Port     | `5433`      |
 | Database | `bookstore` |
 | Username | `bookstore` |
 
@@ -96,13 +96,13 @@ W drugim oknie / w DBeaver (bez zakładki SSH, tylko Main):
 
 ## Rozwiązywanie problemów
 
-| Problem | Co sprawdzić |
-| ------- | ------------- |
-| SSH timeout | UFW / firewall OVH: port **49152** z Twojego IP; panel OVH Network Firewall |
-| Auth failed (SSH) | Zły klucz — użyj **osobistego**, nie `ovh_github_deploy` |
-| Połączenie OK, puste tabele | Baza **`bookstore`**, nie `postgres` |
-| `password authentication failed` | `DB_PASSWORD` z `.env.production` ≠ hasło w DBeaver |
-| Port 5432 zajęty lokalnie | W tunelu SSH użyj lokalnego portu **5433** |
+| Problem                          | Co sprawdzić                                                                |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| SSH timeout                      | UFW / firewall OVH: port **49152** z Twojego IP; panel OVH Network Firewall |
+| Auth failed (SSH)                | Zły klucz — użyj **osobistego**, nie `ovh_github_deploy`                    |
+| Połączenie OK, puste tabele      | Baza **`bookstore`**, nie `postgres`                                        |
+| `password authentication failed` | `DB_PASSWORD` z `.env.production` ≠ hasło w DBeaver                         |
+| Port 5432 zajęty lokalnie        | W tunelu SSH użyj lokalnego portu **5433**                                  |
 
 ---
 

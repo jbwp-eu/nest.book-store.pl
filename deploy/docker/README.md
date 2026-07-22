@@ -47,8 +47,8 @@ Komendy `cp deploy/docker/...` zakładają, że folder `deploy/` jest już na EC
 **A — `git clone` na EC2** (najprościej):
 
 ```bash
-git clone https://github.com/TWOJ_USER/nest.book-store.com.pl.git
-cd nest.book-store.com.pl
+git clone https://github.com/TWOJ_USER/nest.book-store.pl.git
+cd nest.book-store.pl
 ```
 
 **B — `scp` z laptopa** (bez klonowania całego repo; Git Bash / WSL):
@@ -109,6 +109,7 @@ Na EC2:
 gunzip -c ~/api-image.tar.gz | docker load
 mkdir -p /var/www/nest-book-store/releases/manual1/frontend
 # wgraj frontend/dist (npm run build lokalnie z VITE_BACKEND_URL=https://nest.book-store.pl/api)
+scp -i klucz.pem -r frontend/dist ubuntu@EC2_HOST:/var/www/nest-book-store/releases/manual1/frontend/
 ln -sfn /var/www/nest-book-store/releases/manual1 /var/www/nest-book-store/current
 
 cd /var/www/nest-book-store/docker

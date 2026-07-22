@@ -11,8 +11,10 @@ services:
       - pgdata:/var/lib/postgresql/data
     env_file:
       - /var/www/nest-book-store/shared/.env.postgres
+    ports:
+      - "127.0.0.1:5432:5432" # tylko localhost EC2 — DBeaver przez SSH tunnel
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bookstore -d bookstore"]
+      test: ["CMD-SHELL", "pg_isready -U jarek -d bookstore"]
       interval: 5s
       timeout: 5s
       retries: 10
