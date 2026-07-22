@@ -137,10 +137,84 @@ Secrets / Variables (jak dotychczas): `EC2_HOST`, `EC2_SSH_KEY`, `DEPLOY_BASE_UR
 | `backend.Dockerfile`         | obraz Nest                           |
 | `.env.*.example`             | szablony sekretów                    |
 | `activate-release-docker.sh` | symlink `current` + `compose up`     |
+| `backup-postgres.sh`         | automatyczny `pg_dump` (cron)        |
 
 ## Uwagi
 
 - `HOST=0.0.0.0` — wymagane, żeby Caddy w sieci Compose doszedł do Nest.
 - `DB_HOST=postgres` — nazwa serwisu Compose, nie `localhost`.
 - Starej EC2 ze systemd **nie** używaj równolegle na tej samej domenie.
-- Backup DB: `docker compose exec -T postgres pg_dump -U bookstore bookstore > backup.dump`
+
+## Backup / restore DB
+
+Na EC2, z katalogu `/var/www/nest-book-store/docker/`.  
+Poniżej: użytkownik **`user`**, baza **`bookstore`** (jak w `shared/.env.postgres`: `POSTGRES_USER` / `POSTGRES_DB`).
+
+### Backup ręczny
+
+```bash
+docker compose exec -T postgres pg_dump -U user bookstore > backup.dump
+```
+
+### Backup automatyczny (cron) — alternatywa
+
+Skrypt: [`backup-postgres.sh`](backup-postgres.sh)  
+Zapisuje dump do `/var/www/nest-book-store/backups/bookstore-YYYY-MM-DD.dump` i kasuje pliki starsze niż **14 dni**.
+
+**1. Wgraj skrypt na EC2** (raz, albo przez deploy):
+
+```bash
+# z laptopa (przykład) albo skopiuj z repo / git clone
+scp -i klucz.pem deploy/docker/backup-postgres.sh \
+  ubuntu@EC2_HOST:/var/www/nest-book-store/docker/
+```
+
+Na EC2:
+
+```bash
+chmod +x /var/www/nest-book-store/docker/backup-postgres.sh
+mkdir -p /var/www/nest-book-store/backups
+# test ręczny:
+/var/www/nest-book-store/docker/backup-postgres.sh
+ls -la /var/www/nest-book-store/backups/
+```
+
+**2. Cron — codziennie o 3:00**
+
+```bash
+crontab -e
+```
+
+Dodaj linię:
+
+```cron
+0 3 * * * /var/www/nest-book-store/docker/backup-postgres.sh >> /var/www/nest-book-store/backups/cron.log 2>&1
+```
+
+Sprawdź: `crontab -l`.
+
+> Dump na dysku EC2 nie chroni przed awarią całej maszyny — na produkcję warto dodatkowo kopiować pliki poza serwer (np. S3). Compose **nie** trzeba zmieniać.
+
+### Restore (na pustą bazę)
+
+Dump SQL nie nadpisze istniejącej bazy — najpierw drop + create, potem restore.  
+Na czas operacji zatrzymaj API (żeby nie trzymało połączeń):
+
+```bash
+docker compose stop nest-api
+
+docker compose exec -T postgres psql -U user -d postgres -c \
+  "DROP DATABASE bookstore WITH (FORCE);"
+docker compose exec -T postgres psql -U user -d postgres -c \
+  "CREATE DATABASE bookstore OWNER user;"
+
+# ręczny plik albo dump z backups/:
+cat backup.dump | docker compose exec -T postgres psql -U user bookstore
+# albo:
+# cat /var/www/nest-book-store/backups/bookstore-YYYY-MM-DD.dump \
+#   | docker compose exec -T postgres psql -U user bookstore
+
+docker compose start nest-api
+```
+
+`DROP ... WITH (FORCE)` zamyka aktywne sesje. Bez pustej bazy dostaniesz błędy typu `relation already exists` / `duplicate key`.
