@@ -148,18 +148,20 @@ Secrets / Variables (jak dotychczas): `EC2_HOST`, `EC2_SSH_KEY`, `DEPLOY_BASE_UR
 ## Backup / restore DB
 
 Na EC2, z katalogu `/var/www/nest-book-store/docker/`.  
-Poniżej: użytkownik **`user`**, baza **`bookstore`** (jak w `shared/.env.postgres`: `POSTGRES_USER` / `POSTGRES_DB`).
+Użytkownik i baza biorą się z **`shared/.env.postgres`** (`POSTGRES_USER`, `POSTGRES_DB`) — nie hardkoduj ich w skryptach.
 
 ### Backup ręczny
 
 ```bash
-docker compose exec -T postgres pg_dump -U user bookstore > backup.dump
+# wartości z .env.postgres (przykład: jarek / bookstore)
+set -a && source /var/www/nest-book-store/shared/.env.postgres && set +a
+docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup.dump
 ```
 
 ### Backup automatyczny (cron) — alternatywa
 
 Skrypt: [`backup-postgres.sh`](backup-postgres.sh)  
-Zapisuje dump do `/var/www/nest-book-store/backups/bookstore-YYYY-MM-DD.dump` i kasuje pliki starsze niż **14 dni**.
+Sam wczytuje `shared/.env.postgres`, zapisuje dump do `/var/www/nest-book-store/backups/<POSTGRES_DB>-YYYY-MM-DD.dump` i kasuje pliki starsze niż **14 dni**.
 
 Workflow CD ([`deploy-ec2-docker.yml`](../../.github/workflows/deploy-ec2-docker.yml)) wgrywa skrypt do `/var/www/nest-book-store/docker/` przy każdym deployu i tworzy katalog `backups/`.  
 **Cron ustawiasz raz ręcznie** (nie jest w CD).
@@ -187,7 +189,7 @@ Dodaj linię:
 0 3 * * * /var/www/nest-book-store/docker/backup-postgres.sh >> /var/www/nest-book-store/backups/cron.log 2>&1
 ```
 
-Sprawdź: `crontab -l`.
+Sprawdź: `crontab -l`. Cron **nie** musi ustawiać `POSTGRES_*` — skrypt bierze je z `.env.postgres`.
 
 > Dump na dysku EC2 nie chroni przed awarią całej maszyny — na produkcję warto dodatkowo kopiować pliki poza serwer (np. S3). Compose **nie** trzeba zmieniać.
 
@@ -197,18 +199,20 @@ Dump SQL nie nadpisze istniejącej bazy — najpierw drop + create, potem restor
 Na czas operacji zatrzymaj API (żeby nie trzymało połączeń):
 
 ```bash
+set -a && source /var/www/nest-book-store/shared/.env.postgres && set +a
+
 docker compose stop nest-api
 
-docker compose exec -T postgres psql -U user -d postgres -c \
-  "DROP DATABASE bookstore WITH (FORCE);"
-docker compose exec -T postgres psql -U user -d postgres -c \
-  "CREATE DATABASE bookstore OWNER user;"
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c \
+  "DROP DATABASE \"$POSTGRES_DB\" WITH (FORCE);"
+docker compose exec -T postgres psql -U "$POSTGRES_USER" -d postgres -c \
+  "CREATE DATABASE \"$POSTGRES_DB\" OWNER \"$POSTGRES_USER\";"
 
 # ręczny plik albo dump z backups/:
-cat backup.dump | docker compose exec -T postgres psql -U user bookstore
+cat backup.dump | docker compose exec -T postgres psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 # albo:
-# cat /var/www/nest-book-store/backups/bookstore-YYYY-MM-DD.dump \
-#   | docker compose exec -T postgres psql -U user bookstore
+# cat /var/www/nest-book-store/backups/${POSTGRES_DB}-YYYY-MM-DD.dump \
+#   | docker compose exec -T postgres psql -U "$POSTGRES_USER" "$POSTGRES_DB"
 
 docker compose start nest-api
 ```
