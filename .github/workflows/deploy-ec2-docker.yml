@@ -64,8 +64,10 @@ jobs:
           cp -r frontend/dist "$RELEASE_DIR/frontend/"
           cp deploy/docker/docker-compose.yml deploy/docker/Caddyfile \
             deploy/docker/activate-release-docker.sh \
+            deploy/docker/backup-postgres.sh \
             "$RELEASE_DIR/deploy/docker/"
-          chmod +x "$RELEASE_DIR/deploy/docker/activate-release-docker.sh"
+          chmod +x "$RELEASE_DIR/deploy/docker/activate-release-docker.sh" \
+            "$RELEASE_DIR/deploy/docker/backup-postgres.sh"
           echo "RELEASE_DIR=$RELEASE_DIR" >> "$GITHUB_ENV"
 
       - name: Rsync release to EC2
@@ -81,7 +83,7 @@ jobs:
       - name: Sync Compose + Caddyfile to EC2
         uses: burnett01/rsync-deployments@7.0.1
         with:
-          switches: -avzr --include=docker-compose.yml --include=Caddyfile --include=activate-release-docker.sh --exclude=*
+          switches: -avzr --include=docker-compose.yml --include=Caddyfile --include=activate-release-docker.sh --include=backup-postgres.sh --exclude=*
           path: deploy/docker/
           remote_path: /var/www/nest-book-store/docker/
           remote_host: ${{ secrets.EC2_HOST }}
@@ -108,8 +110,11 @@ jobs:
             gunzip -c /tmp/api-image.tar.gz | docker load
             rm -f /tmp/api-image.tar.gz
             cp /var/www/nest-book-store/releases/${{ env.RELEASE_SHA }}/deploy/docker/activate-release-docker.sh \
+              /var/www/nest-book-store/releases/${{ env.RELEASE_SHA }}/deploy/docker/backup-postgres.sh \
               /var/www/nest-book-store/docker/
-            chmod +x /var/www/nest-book-store/docker/activate-release-docker.sh
+            chmod +x /var/www/nest-book-store/docker/activate-release-docker.sh \
+              /var/www/nest-book-store/docker/backup-postgres.sh
+            mkdir -p /var/www/nest-book-store/backups
             bash /var/www/nest-book-store/docker/activate-release-docker.sh \
               ${{ env.RELEASE_SHA }} \
               nest-book-store-api:${{ env.RELEASE_SHA }}

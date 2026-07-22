@@ -161,25 +161,21 @@ docker compose exec -T postgres pg_dump -U user bookstore > backup.dump
 Skrypt: [`backup-postgres.sh`](backup-postgres.sh)  
 Zapisuje dump do `/var/www/nest-book-store/backups/bookstore-YYYY-MM-DD.dump` i kasuje pliki starsze niż **14 dni**.
 
-**1. Wgraj skrypt na EC2** (raz, albo przez deploy):
+Workflow CD ([`deploy-ec2-docker.yml`](../../.github/workflows/deploy-ec2-docker.yml)) wgrywa skrypt do `/var/www/nest-book-store/docker/` przy każdym deployu i tworzy katalog `backups/`.  
+**Cron ustawiasz raz ręcznie** (nie jest w CD).
+
+**1. Po deployu — test na EC2**
 
 ```bash
-# z laptopa (przykład) albo skopiuj z repo / git clone
-scp -i klucz.pem deploy/docker/backup-postgres.sh \
-  ubuntu@EC2_HOST:/var/www/nest-book-store/docker/
-```
-
-Na EC2:
-
-```bash
-chmod +x /var/www/nest-book-store/docker/backup-postgres.sh
-mkdir -p /var/www/nest-book-store/backups
-# test ręczny:
+ls -la /var/www/nest-book-store/docker/backup-postgres.sh
 /var/www/nest-book-store/docker/backup-postgres.sh
 ls -la /var/www/nest-book-store/backups/
 ```
 
-**2. Cron — codziennie o 3:00**
+(Przed pierwszym CD możesz też wgrać skrypt ręcznie:  
+`scp -i klucz.pem deploy/docker/backup-postgres.sh ubuntu@EC2_HOST:/var/www/nest-book-store/docker/` + `chmod +x`.)
+
+**2. Cron — codziennie o 3:00 (raz)**
 
 ```bash
 crontab -e
