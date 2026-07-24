@@ -1,5 +1,7 @@
 # BookStore — backend
 
+**Język:** Polski | [English](README.en.md)
+
 REST API sklepu internetowego w **NestJS**. Globalny prefix tras: **`/api`**. Domyślny port: **3004**.
 
 ## Stack

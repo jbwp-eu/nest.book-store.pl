@@ -1,5 +1,7 @@
 # BookStore — nest.book-store.com.pl lub nest.book-store.pl
 
+**Język:** Polski | [English](README.en.md)
+
 Sklep internetowy (księgarnia): **NestJS** (REST API) + **React** (SPA). Projekt z pełnym flow — katalog, koszyk, zamówienia, Stripe, panel admina, i18n PL/EN.
 
 ## Struktura repozytorium
@@ -12,8 +14,8 @@ nest.book-store.com.pl/
 
 Szczegóły per warstwa:
 
-- [backend/README.md](./backend/README.md) — API, baza, seed, testy backendu
-- [frontend/README.md](./frontend/README.md) — UI, Cypress, konfiguracja Vite
+- [backend/README.md](./backend/README.md) ([English](./backend/README.en.md)) — API, baza, seed, testy backendu
+- [frontend/README.md](./frontend/README.md) ([English](./frontend/README.en.md)) — UI, Cypress, konfiguracja Vite
 
 ## Wymagania
 

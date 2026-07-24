@@ -1,5 +1,7 @@
 # BookStore — frontend
 
+**Język:** Polski | [English](README.en.md)
+
 Aplikacja kliencka sklepu internetowego (księgarnia). Komunikuje się z backendem NestJS pod adresem `http://localhost:3004/api` (dev) lub `https://nest.book-store.pl/api` (produkcja).
 
 ## Stack
