@@ -3,6 +3,9 @@
 #   /var/www/nest-book-store/docker/          ← this compose + Caddyfile
 #   /var/www/nest-book-store/shared/          ← .env.production, .env.postgres
 #   /var/www/nest-book-store/current/frontend/dist  ← SPA (symlink to release)
+#
+# Network "book-store" is shared with www Compose (/var/www/www/docker/)
+# so Caddy can reverse_proxy www:3000.
 
 services:
   postgres:
@@ -19,6 +22,8 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - book-store
 
   nest-api:
     image: ${API_IMAGE:-nest-book-store-api:latest}
@@ -33,6 +38,8 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - book-store
 
   caddy:
     image: caddy:2-alpine
@@ -48,8 +55,14 @@ services:
     depends_on:
       - nest-api
     restart: unless-stopped
+    networks:
+      - book-store
 
 volumes:
   pgdata:
   caddy_data:
   caddy_config:
+
+networks:
+  book-store:
+    name: book-store

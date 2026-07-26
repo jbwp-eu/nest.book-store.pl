@@ -1,5 +1,6 @@
 # Strategy A: nest.book-store.pl → this EC2 (Elastic IP / public DNS)
 # Mounted into caddy container at /etc/caddy/Caddyfile
+# www joins Docker network book-store (separate compose under /var/www/www/docker/)
 
 nest.book-store.pl {
 	handle /api/* {
@@ -16,4 +17,8 @@ nest.book-store.pl {
 		try_files {path} /index.html
 		file_server
 	}
+}
+
+www.book-store.pl {
+	reverse_proxy www:3000
 }

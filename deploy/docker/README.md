@@ -3,6 +3,9 @@
 Strategia **A**: domena **`nest.book-store.pl`** wskazuje bezpośrednio na **nową EC2** (publiczny IP lub Elastic IP).  
 Stack: **Caddy + nest-api + PostgreSQL** przez Docker Compose — bez systemd Nest / systemowego Postgresa.
 
+Opcjonalnie ta sama EC2 hostuje **`www.book-store.pl`** jako osobny Compose (`/var/www/www/docker/`)
+w sieci **`book-store`**. Caddy: `reverse_proxy www:3000`. Szczegóły: repo www → `deploy/ec2.md`.
+
 ## Architektura
 
 ```text
