@@ -2,7 +2,7 @@
 
 **Język:** Polski | [English](README.en.md)
 
-Sklep internetowy (księgarnia): **NestJS** (REST API) + **React** (SPA). Projekt z pełnym flow — katalog, koszyk, zamówienia, Stripe, panel admina, i18n PL/EN.
+Full-stackowy sklep z książkami (monorepo): SPA **React 19** + **Vite** z **Tailwind CSS v4**, **shadcn/ui**, **TanStack Query**, **Redux Toolkit** i **React Router v7** (data mode); REST API **NestJS** z **TypeORM**, **PostgreSQL** i **JWT**. Płatności: **Stripe**; chat przy zamówieniu: **Socket.IO**; zdjęcia: **AWS S3** + **CloudFront**. Testy: **Jest**, **Supertest**, **Vitest**, **Cypress**. Live: `nest.book-store.com.pl` / `nest.book-store.pl`.
 
 ## Struktura repozytorium
 

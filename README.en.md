@@ -2,7 +2,7 @@
 
 **Language:** [Polski](README.md) | English
 
-Online bookstore: **NestJS** (REST API) + **React** (SPA). Full flow — catalog, cart, orders, Stripe, admin panel, i18n PL/EN.
+A full-stack online bookstore monorepo: **React 19** + **Vite** SPA with **Tailwind CSS v4**, **shadcn/ui**, **TanStack Query**, **Redux Toolkit**, and **React Router v7** (data mode); **NestJS** REST API with **TypeORM**, **PostgreSQL**, and **JWT**. Payments via **Stripe**; order chat with **Socket.IO**; product images on **AWS S3** + **CloudFront**. Tested with **Jest**, **Supertest**, **Vitest**, and **Cypress**. Live at `nest.book-store.com.pl` / `nest.book-store.pl`.
 
 ## Repository structure
 
