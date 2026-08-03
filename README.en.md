@@ -2,7 +2,7 @@
 
 **Language:** [Polski](README.md) | English
 
-A full-stack online bookstore monorepo: **React 19** + **Vite** SPA with **Tailwind CSS v4**, **shadcn/ui**, **TanStack Query**, **Redux Toolkit**, and **React Router v7** (data mode); **NestJS** REST API with **TypeORM**, **PostgreSQL**, and **JWT**. Payments via **Stripe**; order chat with **Socket.IO**; product images on **AWS S3** + **CloudFront**. Tested with **Jest**, **Supertest**, **Vitest**, and **Cypress**. Live at `nest.book-store.com.pl` / `nest.book-store.pl`.
+A full-stack bookstore monorepo: **React 19** + **Vite** (**Tailwind CSS v4**, **shadcn/ui**, **TanStack Query**, **Redux Toolkit**, **React Router v7**) and a **NestJS** REST API (**TypeORM**, **PostgreSQL**, **JWT**). **Stripe**, **Socket.IO** order chat, **AWS S3** + **CloudFront**; optional order-confirmation email via **AWS SQS** + **Lambda**. Tests: **Jest**, **Supertest**, **Vitest**, **Cypress**. CI/CD via **GitHub Actions**. Deployed on **AWS EC2** and/or **OVH VPS**.
 
 ## Repository structure
 
