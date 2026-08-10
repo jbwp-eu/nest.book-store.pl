@@ -48,7 +48,8 @@ API: [http://localhost:3004/api](http://localhost:3004/api) (domyślny port z `c
 cd frontend
 npm install
 cp .env.example .env
-# Uzupełnij VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE
+# Uzupełnij VITE_DEPLOY_TARGET oraz VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH / _AWS
+# oraz DEPLOY_TARGET + STRIPE_*_OVH / _AWS w backend/.env
 npm run dev
 ```
 

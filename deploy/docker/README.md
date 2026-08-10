@@ -129,7 +129,7 @@ Smoke: `bash deploy/smoke-test.sh` z `DEPLOY_BASE_URL=https://nest.book-store.pl
 
 Workflow: [`.github/workflows/deploy-ec2-docker.yml`](../../.github/workflows/deploy-ec2-docker.yml)
 
-Secrets / Variables (jak dotychczas): `EC2_HOST`, `EC2_SSH_KEY`, `DEPLOY_BASE_URL=https://nest.book-store.pl`, klucze Vite, opcjonalnie `DEPLOY_ADMIN_PASSWORD`.
+Secrets / Variables (jak dotychczas): `EC2_HOST`, `EC2_SSH_KEY`, `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`, klucze Vite, opcjonalnie `DEPLOY_ADMIN_PASSWORD`.
 
 ## 5. Pliki w tym katalogu
 

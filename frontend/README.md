@@ -31,7 +31,7 @@ npm install
 cp .env.example .env
 ```
 
-Uzupełnij w `.env` klucz Stripe (`VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE`) oraz opcjonalnie klucze Google Maps.
+Uzupełnij w `.env` `VITE_DEPLOY_TARGET` oraz klucze Stripe (`VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` / `_AWS`) oraz opcjonalnie klucze Google Maps.
 
 ## Uruchomienie
 
@@ -61,11 +61,14 @@ npm run lint       # ESLint
 | Zmienna                                 | Opis                               | Domyślnie                   |
 | --------------------------------------- | ---------------------------------- | --------------------------- |
 | `VITE_PORT`                             | Port dev servera                   | `5173`                      |
-| `VITE_BACKEND_URL`                      | URL API Nest                       | `http://localhost:3004/api` |
+| `VITE_DEPLOY_TARGET`                    | `ovh` / `aws` (produkcja)          | `ovh`                       |
+| `VITE_BACKEND_URL_TEST_MODE`            | URL API Nest (dev)                 | `http://localhost:3004/api` |
+| `VITE_BACKEND_URL_OVH` / `_AWS`         | URL API Nest (produkcja)           | domeny nest.*               |
 | `VITE_ASSET_URL`                        | CloudFront — obrazy produktów      | CloudFront demo             |
 | `VITE_LANGUAGE`                         | Domyślny język UI (`pl` / `en`)    | `pl`                        |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | Klucz publiczny Stripe (test)      | —                           |
-| `VITE_STRIPE_CONFIRMPAYMENT_URL`        | Origin powrotu po płatności Stripe | `http://localhost:5173`     |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` / `_AWS` | Klucz publiczny Stripe (test) | —                        |
+| `VITE_STRIPE_CONFIRMPAYMENT_URL_TEST_MODE` | Origin powrotu Stripe (dev)     | `http://localhost:5173`     |
+| `VITE_STRIPE_CONFIRMPAYMENT_URL_OVH` / `_AWS` | Origin powrotu (produkcja)    | domeny nest.*               |
 ## Testy
 
 ### Vitest (jednostkowe)

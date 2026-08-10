@@ -399,7 +399,7 @@ export const commonEn = {
     purchasing: "Processing…",
     purchase: "Pay",
     error: "Payment error.",
-    missingKey: "Missing Stripe key (VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE).",
+    missingKey: "Missing Stripe key (VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH / _AWS).",
     successTitle: "Payment complete",
     pendingTitle: "Payment status",
     successDesc: "Thank you! Your payment is being verified.",

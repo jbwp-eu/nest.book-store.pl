@@ -1,6 +1,7 @@
 # CD: deploy to OVH VPS after CI passes on main (or manual workflow_dispatch).
 # Server bootstrap + klucz deploy: deploy/ovh.md
-# GitHub Secrets: OVH_HOST, OVH_SSH_KEY (private deploy key, bez passphrase), VITE_*
+# GitHub Secrets: OVH_HOST, OVH_SSH_KEY (private deploy key, bez passphrase),
+#   VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH, VITE_GOOGLE_MAPS_API_KEY (opcjonalnie)
 # GitHub Variables: OVH_DEPLOY_BASE_URL (https://nest.book-store.com.pl)
 name: Deploy to OVH VPS
 
@@ -36,7 +37,7 @@ jobs:
       - name: Build and prepare release archive
         env:
           DEPLOY_BASE: ${{ vars.OVH_DEPLOY_BASE_URL }}
-          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE }}
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         run: |
           set -euo pipefail
@@ -49,9 +50,10 @@ jobs:
           npm run build --prefix backend
 
           cd frontend
-          VITE_BACKEND_URL="${DEPLOY_BASE}/api" \
-          VITE_STRIPE_CONFIRMPAYMENT_URL="${DEPLOY_BASE}" \
-          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE}" \
+          VITE_DEPLOY_TARGET=ovh \
+          VITE_BACKEND_URL_OVH="${DEPLOY_BASE}/api" \
+          VITE_STRIPE_CONFIRMPAYMENT_URL_OVH="${DEPLOY_BASE}" \
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH}" \
           VITE_GOOGLE_MAPS_API_KEY="${VITE_GOOGLE_MAPS_API_KEY:-}" \
           VITE_ASSET_URL="https://d8gge2z531r61.cloudfront.net" \
           VITE_APP_NAME="BookStore" \

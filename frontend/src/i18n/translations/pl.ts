@@ -399,7 +399,7 @@ export const commonPl = {
     purchasing: "Przetwarzanie…",
     purchase: "Zapłać",
     error: "Błąd płatności.",
-    missingKey: "Brak klucza Stripe (VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE).",
+    missingKey: "Brak klucza Stripe (VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH / _AWS).",
     successTitle: "Płatność zakończona",
     pendingTitle: "Status płatności",
     successDesc: "Dziękujemy! Płatność została przekazana do weryfikacji.",

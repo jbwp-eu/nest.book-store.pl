@@ -164,30 +164,18 @@ export class PaymentsService {
       );
 
       return { received: true as const, newlyPaid: false };
-
     }
-
-
 
     const paidCorrectAmount =
 
       Number(order.totalPrice).toFixed(2) ===
 
       (paymentIntent.amount / 100).toFixed(2);
-
-
-
     if (!paidCorrectAmount) {
-
       throw new UnauthorizedException(
-
         this.i18n.t('messages.incorrectAmountPaid'),
-
       );
-
     }
-
-
 
     const result = await this.markOrderPaid(order, {
 
@@ -204,8 +192,6 @@ export class PaymentsService {
       stripePaymentIntentId: paymentIntent.id,
 
     });
-
-
 
     if (!result.newlyPaid || !result.orderId) {
       return { received: true as const, newlyPaid: false };
@@ -227,33 +213,17 @@ export class PaymentsService {
 
 
   async handlePaymentIntentFailedOrCanceled(
-
     paymentIntent: StripePaymentIntentObject,
-
   ) {
-
     const cancelled = await this.cancelUnpaidOrderByStripePaymentIntentId(
-
       paymentIntent.id,
-
     );
-
-
-
     if (cancelled) {
-
       this.logger.log(
-
         `Unpaid order cancelled; stock restored for PI ${paymentIntent.id}`,
-
       );
-
     }
-
-
-
     return { received: true as const, cancelled };
-
   }
 
 
@@ -262,7 +232,6 @@ export class PaymentsService {
     if (enqueued) {
       return;
     }
-
     await this.mailService.sendPurchaseReceipt(orderId);
   }
 

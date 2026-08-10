@@ -38,9 +38,12 @@ jobs:
       run:
         working-directory: frontend
     env:
+      VITE_DEPLOY_TARGET: ovh
       VITE_BACKEND_URL_TEST_MODE: http://localhost:3004/api
-      VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE: pk_test_ci
+      VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH: pk_test_ci
       VITE_STRIPE_CONFIRMPAYMENT_URL_TEST_MODE: http://localhost:5173
+      VITE_BACKEND_URL_OVH: http://localhost:3004/api
+      VITE_STRIPE_CONFIRMPAYMENT_URL_OVH: http://localhost:5173
     steps:
       - uses: actions/checkout@v4
 
@@ -92,8 +95,9 @@ jobs:
           DB_PASSWORD=postgres
           DB_NAME=bookstore
           JWT_SECRET=ci-jwt-secret
-          STRIPE_SECRET_KEY_TEST_MODE=sk_test_ci_dummy
-          STRIPE_WEBHOOK_SECRET_TEST_MODE=whsec_ci_dummy
+          DEPLOY_TARGET=ovh
+          STRIPE_SECRET_KEY_TEST_MODE_OVH=sk_test_ci_dummy
+          STRIPE_WEBHOOK_SECRET_TEST_MODE_OVH=whsec_ci_dummy
           ADMIN_PASSWORD=ci-admin-password
           EOF
 

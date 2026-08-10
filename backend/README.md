@@ -33,7 +33,7 @@ Uzupełnij minimum:
 
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`
 - `JWT_SECRET`
-- `STRIPE_SECRET_KEY_TEST_MODE`, `STRIPE_WEBHOOK_SECRET_TEST_MODE`
+- `DEPLOY_TARGET` (`ovh` | `aws`), `STRIPE_SECRET_KEY_TEST_MODE_OVH` / `_AWS`, `STRIPE_WEBHOOK_SECRET_TEST_MODE_OVH` / `_AWS` (wymagana para dla aktywnego targetu)
 - `ADMIN_PASSWORD` (hasło konta `admin@test.pl` po seedzie)
 
 ## Uruchomienie

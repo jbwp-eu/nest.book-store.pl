@@ -33,7 +33,7 @@ Fill in at minimum:
 
 - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`
 - `JWT_SECRET`
-- `STRIPE_SECRET_KEY_TEST_MODE`, `STRIPE_WEBHOOK_SECRET_TEST_MODE`
+- `DEPLOY_TARGET` (`ovh` | `aws`), `STRIPE_SECRET_KEY_TEST_MODE_OVH` / `_AWS`, `STRIPE_WEBHOOK_SECRET_TEST_MODE_OVH` / `_AWS` (required pair for the active target)
 - `ADMIN_PASSWORD` (password for `admin@test.pl` after seed)
 
 ## Running

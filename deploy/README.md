@@ -329,7 +329,8 @@ npm ci
 # minimum w .env lub export przed buildem:
 #   VITE_BACKEND_URL=https://nest.book-store.pl/api
 #   VITE_STRIPE_CONFIRMPAYMENT_URL=https://nest.book-store.pl
-#   VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE=pk_test_...
+#   VITE_DEPLOY_TARGET=aws
+#   VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS=pk_test_...
 npm run build
 ```
 
@@ -455,7 +456,7 @@ Szczegóły bootstrapu: [ovh.md](ovh.md).
 **AWS EC2 (wyłączone auto-deploy)** — `.github/workflows/deploy-ec2.yml`:
 
 - Tylko `workflow_dispatch` (instancja zatrzymana)
-- Domena: `nest.book-store.pl`, zmienna `DEPLOY_BASE_URL`
+- Domena: `nest.book-store.pl`, zmienna `AWS_DEPLOY_BASE_URL`
 
 Wspólny wzorzec deployu:
 
@@ -471,7 +472,7 @@ Wspólny wzorzec deployu:
 | --------------------------------------- | ------------------------------------------------------------------------- |
 | `OVH_HOST`                              | hostname lub IP                                                           |
 | `OVH_SSH_KEY`                           | private klucz deploy (bez passphrase) — [ovh.md](ovh.md#klucz-ssh-deploy) |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu                                                           |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` | build frontendu (konto Stripe OVH)                                    |
 | `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie                                                               |
 
 **Variable (OVH):** `OVH_DEPLOY_BASE_URL=https://nest.book-store.com.pl`
@@ -482,10 +483,10 @@ Wspólny wzorzec deployu:
 | --------------------------------------- | ---------------- |
 | `EC2_HOST`                              | hostname lub IP  |
 | `EC2_SSH_KEY`                           | cały plik `.pem` |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu  |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS` | build frontendu (konto Stripe AWS) |
 | `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie      |
 
-**Variable (EC2):** `DEPLOY_BASE_URL=https://nest.book-store.pl`
+**Variable (EC2):** `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`
 
 ### Etap 5 — usprawnienia AWS (opcjonalnie)
 
@@ -526,7 +527,7 @@ docker compose up -d
 | Compose / Caddyfile / Dockerfile | `deploy/docker/`                                                                        |
 | CD                               | [`.github/workflows/deploy-ec2-docker.yml`](../.github/workflows/deploy-ec2-docker.yml) |
 | EC2                              | **t3.small**, SG: 22 / 80 / 443                                                         |
-| Variable                         | `DEPLOY_BASE_URL=https://nest.book-store.pl`                                            |
+| Variable                         | `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`                                        |
 
 Stary workflow `deploy-ec2.yml` (systemd) zostaje jako v1 / archiwum — produkcja Docker = **`deploy-ec2-docker.yml`**.
 

@@ -53,7 +53,7 @@ sudo chown -R ubuntu:ubuntu /var/www/nest-book-store
 | --------------------------------------- | ----------------------- |
 | `OVH_HOST`                              | IP lub hostname VPS     |
 | `OVH_SSH_KEY`                           | **private** klucz deploy (bez passphrase) — patrz [Klucz SSH deploy](#klucz-ssh-deploy) |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE` | build frontendu         |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` | build frontendu     |
 | `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie             |
 | `DEPLOY_ADMIN_PASSWORD`                 | opcjonalnie — smoke test |
 

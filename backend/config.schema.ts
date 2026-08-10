@@ -24,8 +24,28 @@ export const configSchema = Joi.object({
   CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional(),
   ORDER_CONFIRMATION_QUEUE_URL: Joi.string().uri().optional().allow(''),
   AWS_REGION: Joi.string().default('eu-central-1'),
-  STRIPE_SECRET_KEY_TEST_MODE: Joi.string().required(),
-  STRIPE_WEBHOOK_SECRET_TEST_MODE: Joi.string().required(),
+  // ovh = nest.book-store.com.pl | aws = nest.book-store.pl
+  DEPLOY_TARGET: Joi.string().valid('ovh', 'aws').default('ovh'),
+  STRIPE_SECRET_KEY_TEST_MODE_OVH: Joi.when('DEPLOY_TARGET', {
+    is: 'ovh',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().allow(''),
+  }),
+  STRIPE_SECRET_KEY_TEST_MODE_AWS: Joi.when('DEPLOY_TARGET', {
+    is: 'aws',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().allow(''),
+  }),
+  STRIPE_WEBHOOK_SECRET_TEST_MODE_OVH: Joi.when('DEPLOY_TARGET', {
+    is: 'ovh',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().allow(''),
+  }),
+  STRIPE_WEBHOOK_SECRET_TEST_MODE_AWS: Joi.when('DEPLOY_TARGET', {
+    is: 'aws',
+    then: Joi.string().required(),
+    otherwise: Joi.string().optional().allow(''),
+  }),
   SMTP_HOST: Joi.string().optional(),
   SMTP_PORT: Joi.number().default(465),
   SMTP_USER: Joi.string().optional(),

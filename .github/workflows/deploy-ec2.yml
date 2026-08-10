@@ -2,8 +2,9 @@
 # TYMCZASOWO: auto-deploy wyłączony — instancja AWS zatrzymana. Produkcja: deploy-ovh.yml
 # Aby przywrócić auto-deploy: odkomentuj workflow_run + if + checkout ref + RELEASE_SHA poniżej.
 # Server bootstrap: deploy/README.md (Etap 2).
-# GitHub Secrets: EC2_HOST, EC2_SSH_KEY, VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE
-# GitHub Variables: DEPLOY_BASE_URL (e.g. https://nest.book-store.pl)
+# GitHub Secrets: EC2_HOST, EC2_SSH_KEY, VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS,
+#   VITE_GOOGLE_MAPS_API_KEY (opcjonalnie)
+# GitHub Variables: AWS_DEPLOY_BASE_URL (e.g. https://nest.book-store.pl)
 name: Deploy to EC2
 
 on:
@@ -37,8 +38,8 @@ jobs:
 
       - name: Build and prepare release archive
         env:
-          DEPLOY_BASE: ${{ vars.DEPLOY_BASE_URL }}
-          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE }}
+          DEPLOY_BASE: ${{ vars.AWS_DEPLOY_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
         run: |
           set -euo pipefail
@@ -52,9 +53,10 @@ jobs:
           npm run build --prefix backend
 
           cd frontend
-          VITE_BACKEND_URL="${DEPLOY_BASE}/api" \
-          VITE_STRIPE_CONFIRMPAYMENT_URL="${DEPLOY_BASE}" \
-          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE}" \
+          VITE_DEPLOY_TARGET=aws \
+          VITE_BACKEND_URL_AWS="${DEPLOY_BASE}/api" \
+          VITE_STRIPE_CONFIRMPAYMENT_URL_AWS="${DEPLOY_BASE}" \
+          VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS}" \
           VITE_GOOGLE_MAPS_API_KEY="${VITE_GOOGLE_MAPS_API_KEY:-}" \
           VITE_ASSET_URL="https://d8gge2z531r61.cloudfront.net" \
           VITE_APP_NAME="BookStore" \
@@ -95,6 +97,6 @@ jobs:
 
       - name: Smoke test (public URL)
         env:
-          DEPLOY_BASE_URL: ${{ vars.DEPLOY_BASE_URL }}
+          DEPLOY_BASE_URL: ${{ vars.AWS_DEPLOY_BASE_URL }}
           DEPLOY_ADMIN_PASSWORD: ${{ secrets.DEPLOY_ADMIN_PASSWORD }}
         run: bash deploy/smoke-test.sh
