@@ -2,7 +2,8 @@
 # Server bootstrap + klucz deploy: deploy/ovh.md
 # GitHub Secrets: OVH_HOST, OVH_SSH_KEY (private deploy key, bez passphrase),
 #   VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH, VITE_GOOGLE_MAPS_API_KEY (opcjonalnie)
-# GitHub Variables: OVH_DEPLOY_BASE_URL (https://nest.book-store.com.pl)
+# GitHub Variables: OVH_DEPLOY_BASE_URL (https://nest.book-store.com.pl),
+#   VITE_GOOGLE_MAPS_MAP_ID (opcjonalnie)
 name: Deploy to OVH VPS
 
 on:
@@ -39,6 +40,7 @@ jobs:
           DEPLOY_BASE: ${{ vars.OVH_DEPLOY_BASE_URL }}
           VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH }}
           VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+          VITE_GOOGLE_MAPS_MAP_ID: ${{ vars.VITE_GOOGLE_MAPS_MAP_ID }}
         run: |
           set -euo pipefail
           DEPLOY_BASE="${DEPLOY_BASE:-https://nest.book-store.com.pl}"
@@ -55,6 +57,7 @@ jobs:
           VITE_STRIPE_CONFIRMPAYMENT_URL_OVH="${DEPLOY_BASE}" \
           VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH="${VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH}" \
           VITE_GOOGLE_MAPS_API_KEY="${VITE_GOOGLE_MAPS_API_KEY:-}" \
+          VITE_GOOGLE_MAPS_MAP_ID="${VITE_GOOGLE_MAPS_MAP_ID:-}" \
           VITE_ASSET_URL="https://d8gge2z531r61.cloudfront.net" \
           VITE_APP_NAME="BookStore" \
           VITE_LANGUAGE="pl" \

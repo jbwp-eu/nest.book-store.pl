@@ -113,8 +113,10 @@ Na EC2 jako `ubuntu`:
 1. Node.js 22, git, build-essential, rsync
 2. **PostgreSQL** — instalacja, utworzenie DB/użytkownika, `listen_addresses = 'localhost'` → [Instalacja PostgreSQL na EC2](#instalacja-postgresql-na-ec2)
 3. **Reverse proxy** — wybierz **jeden**:
-   - **Caddy** (prościej, auto-TLS) — [Caddyfile.example](Caddyfile.example)
-   - **NGINX** + certbot — [nginx.md](nginx.md), [nginx-nest-book-store.example](nginx-nest-book-store.example)
+
+- **Caddy** (prościej, auto-TLS) — [Caddyfile.example](Caddyfile.example)
+- **NGINX** + certbot — [nginx.md](nginx.md), [nginx-nest-book-store.example](nginx-nest-book-store.example)
+
 4. Katalogi aplikacji (jednorazowo, wymaga `sudo` — `/var/www` domyślnie należy do root):
 
 ```bash
@@ -124,10 +126,10 @@ sudo chown -R ubuntu:ubuntu /var/www/nest-book-store
 
 Po `chown` użytkownik `ubuntu` może tworzyć podkatalogi w `releases/` (scp, deploy) bez `sudo`.
 
-5. Plik `shared/.env.production` (backend env: DB\_\*, JWT, STRIPE, CURRENCY…)
-6. **systemd** — usługa Nest (`deploy/nest-book-store.service.example`)
-7. `activate-release.sh` w `/usr/local/bin/`
-8. Sudoers: `ubuntu` może `systemctl restart nest-book-store`
+1. Plik `shared/.env.production` (backend env: DB, JWT, STRIPE, CURRENCY…)
+2. **systemd** — usługa Nest (`deploy/nest-book-store.service.example`)
+3. `activate-release.sh` w `/usr/local/bin/`
+4. Sudoers: `ubuntu` może `systemctl restart nest-book-store`
 
 Seed i logowanie admina — dopiero po wgraniu `dist/` → [Pierwszy deploy ręczny](#pierwszy-deploy-ręczny), krok 3.
 
@@ -186,7 +188,7 @@ psql -h 127.0.0.1 -U bookstore -d bookstore -W
 # po teście: \q
 ```
 
-### 3. Nasłuch tylko na localhost
+### 3. Nasłuch tylko na [localhost](http://localhost)
 
 Edytuj `postgresql.conf` (ścieżka zależy od wersji; na PG 16):
 
@@ -230,7 +232,7 @@ sudo systemctl restart postgresql
 
 ```bash
 sudo ss -tlnp | grep 5432
-# oczekiwane: 127.0.0.1:5432 (nie 0.0.0.0:5432)
+# oczekiwane: 127.0.0.1:5432 sudo ss -tlnp | grep 5432(nie 0.0.0.0:5432)
 
 psql -h 127.0.0.1 -U bookstore -d bookstore -c 'SELECT current_database(), current_user;'
 ```
@@ -416,7 +418,7 @@ W przeglądarce: [https://nest.book-store.pl](https://nest.book-store.pl) — ka
 
 ### Checklist przed pierwszym deployem
 
-- [ ] Reverse proxy: **Caddy** (`deploy/Caddyfile.example`) **lub NGINX** (`deploy/nginx.md` + `nginx-nest-book-store.example`) — `root` → `.../current/frontend/dist`, proxy `/api/*` i `/socket.io/*` → `127.0.0.1:3004`
+- [ ] Reverse proxy: **Caddy** (`deploy/Caddyfile.example`) **lub NGINX** (`deploy/nginx.md` + `nginx-nest-book-store.example`) — `root` → `.../current/frontend/dist`, proxy `/api/`_ i `/socket.io/`_ → `127.0.0.1:3004`
 - [ ] systemd: `WorkingDirectory=/var/www/nest-book-store/current/backend`, `EnvironmentFile=.../shared/.env.production`
 - [ ] `.env.production`: `DB_*`, `JWT_SECRET`, `STRIPE_*`, `ADMIN_PASSWORD`
 - [ ] Frontend zbudowany z `VITE_BACKEND_URL=https://nest.book-store.pl/api`
@@ -468,23 +470,23 @@ Wspólny wzorzec deployu:
 
 **GitHub Secrets (OVH):**
 
-| Secret                                  | Opis                                                                      |
-| --------------------------------------- | ------------------------------------------------------------------------- |
-| `OVH_HOST`                              | hostname lub IP                                                           |
-| `OVH_SSH_KEY`                           | private klucz deploy (bez passphrase) — [ovh.md](ovh.md#klucz-ssh-deploy) |
-| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` | build frontendu (konto Stripe OVH)                                    |
-| `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie                                                               |
+| Secret                                      | Opis                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------------------- |
+| `OVH_HOST`                                  | hostname lub IP                                                           |
+| `OVH_SSH_KEY`                               | private klucz deploy (bez passphrase) — [ovh.md](ovh.md#klucz-ssh-deploy) |
+| `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_OVH` | build frontendu (konto Stripe OVH)                                        |
+| `VITE_GOOGLE_MAPS_API_KEY`                  | opcjonalnie                                                               |
 
 **Variable (OVH):** `OVH_DEPLOY_BASE_URL=https://nest.book-store.com.pl`
 
 **GitHub Secrets (EC2, ręczny deploy):**
 
-| Secret                                  | Opis             |
-| --------------------------------------- | ---------------- |
-| `EC2_HOST`                              | hostname lub IP  |
-| `EC2_SSH_KEY`                           | cały plik `.pem` |
+| Secret                                      | Opis                               |
+| ------------------------------------------- | ---------------------------------- |
+| `EC2_HOST`                                  | hostname lub IP                    |
+| `EC2_SSH_KEY`                               | cały plik `.pem`                   |
 | `VITE_STRIPE_PUBLISHABLE_KEY_TEST_MODE_AWS` | build frontendu (konto Stripe AWS) |
-| `VITE_GOOGLE_MAPS_API_KEY`              | opcjonalnie      |
+| `VITE_GOOGLE_MAPS_API_KEY`                  | opcjonalnie                        |
 
 **Variable (EC2):** `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`
 
@@ -509,10 +511,10 @@ Wspólny wzorzec deployu:
 
 ### Etap 7 — Docker
 
-**7a — Docker na nowym EC2 (strategia A — `nest.book-store.pl`):**
+**7a — Docker na nowym EC2 (strategia A —** `nest.book-store.pl`**):**
 
 Nowa maszyna **tylko Docker** (bez systemd Nest / systemowego Postgresa).  
-DNS: **A `nest.book-store.pl` → Elastic IP** tej EC2 (czyste przełączenie).
+DNS: **A** `nest.book-store.pl` **→ Elastic IP** tej EC2 (czyste przełączenie).
 
 ```text
 docker compose up -d
@@ -525,11 +527,11 @@ docker compose up -d
 | -------------------------------- | --------------------------------------------------------------------------------------- |
 | Instrukcja bootstrap             | **[deploy/docker/README.md](docker/README.md)**                                         |
 | Compose / Caddyfile / Dockerfile | `deploy/docker/`                                                                        |
-| CD                               | [`.github/workflows/deploy-ec2-docker.yml`](../.github/workflows/deploy-ec2-docker.yml) |
+| CD                               | `[.github/workflows/deploy-ec2-docker.yml](../.github/workflows/deploy-ec2-docker.yml)` |
 | EC2                              | **t3.small**, SG: 22 / 80 / 443                                                         |
 | Variable                         | `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`                                        |
 
-Stary workflow `deploy-ec2.yml` (systemd) zostaje jako v1 / archiwum — produkcja Docker = **`deploy-ec2-docker.yml`**.
+Stary workflow `deploy-ec2.yml` (systemd) zostaje jako v1 / archiwum — produkcja Docker = `deploy-ec2-docker.yml`.
 
 **7b — ECR + ECS/Fargate (zaawansowane):**
 
@@ -565,49 +567,3 @@ Migracja w obie strony (Caddy ↔ NGINX) bez zmiany deployu GitHub Actions.
 | Koszt        | 0                            | 0                                       | ~$16+/mies.              |
 
 ---
-
-## Co **nie** jest potrzebne na start
-
-- RDS (świadomie pomijasz — Postgres na EC2)
-- ALB przy jednej instancji
-- Lambda dla głównej aplikacji
-- Kubernetes / ECS na początek
-- Własna VPC (default wystarczy)
-
----
-
-## Kolejność prac (skrót)
-
-```
-Etap 0  Przygotowanie repo + DNS
-   ↓
-Etap 1  EC2 + SG + Route 53 (default VPC)
-   ↓
-Etap 2  Bootstrap: Postgres, Caddy **lub** NGINX, systemd, .env
-   ↓
-Etap 3  GitHub Actions CI (testy)
-   ↓
-Etap 4  GitHub Actions CD (deploy na EC2)
-   ↓
-Etap 5  Elastic IP, Lambda mail, CloudWatch (opcjonalnie)
-   ↓
-Etap 6  Własna VPC + 2 EC2 (nauka)
-   ↓
-Etap 7  Docker Compose na **nowym** EC2 (strategia A: nest.book-store.pl)
-   ↓
-Etap 8  NGINX ↔ Caddy (alternatywa proxy, opcjonalnie)
-```
-
----
-
-## Następny krok
-
-Masz już EC2, DNS i bootstrap — wykonaj [Pierwszy deploy ręczny](#pierwszy-deploy-ręczny), potem dodamy pliki:
-
-- `deploy/activate-release.sh`
-- `deploy/smoke-test.sh`
-- `.github/workflows/ci.yml`
-- `.github/workflows/deploy-ovh.yml`
-- `.github/workflows/deploy-ec2.yml` (tylko ręcznie)
-
-Pliki `deploy/Caddyfile.example`, `deploy/nginx-nest-book-store.example`, `deploy/nginx.md`, `deploy/nest-book-store.service.example` oraz **`deploy/docker/`** (Compose v2 / strategia A) są w repo.
