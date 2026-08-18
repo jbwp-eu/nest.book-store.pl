@@ -8,7 +8,10 @@ export const configSchema = Joi.object({
   DB_USERNAME: Joi.string().required(),
   DB_PASSWORD: Joi.string().required(),
   DB_NAME: Joi.string().required(),
-  JWT_SECRET: Joi.string().required(),
+  JWT_SECRET: Joi.string()
+    .min(32)
+    .invalid('your_jwt_secret', 'change_me_long_random_secret')
+    .required(),
   PAGINATION_LIMIT: Joi.number().default(5),
   TAX: Joi.number().default(0),
   CLOUDFRONT_KEY_PAIR_ID: Joi.string().optional(),

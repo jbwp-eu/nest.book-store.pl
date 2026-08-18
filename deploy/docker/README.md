@@ -142,6 +142,26 @@ Secrets / Variables (jak dotychczas): `EC2_HOST`, `EC2_SSH_KEY`, `AWS_DEPLOY_BAS
 | `activate-release-docker.sh` | symlink `current` + `compose up`     |
 | `backup-postgres.sh`         | automatyczny `pg_dump` (cron)        |
 
+## Mail po zakupie (SQS + IAM)
+
+Nest w kontenerze wysyła na SQS przez **rolę IAM instancji** (bez access key w `.env`).
+
+Wymagane na tej EC2:
+
+1. Polityka `sqs:SendMessage` + rola EC2 przypięta do instancji  
+2. **IMDSv2 hop limit = 2** (przy `1` kontener nie dostaje credentials → `CredentialsProviderError`)  
+3. W `shared/.env.production`: `ORDER_CONFIRMATION_QUEUE_URL`, `AWS_REGION=eu-central-1`
+
+Pełna instrukcja (SQS, policy, role, Lambda, weryfikacja):  
+**[../order-confirmation-lambda.md](../order-confirmation-lambda.md)**
+
+Po zmianie roli / hop limit:
+
+```bash
+cd /var/www/nest-book-store/docker
+docker compose up -d --force-recreate nest-api
+```
+
 ## Uwagi
 
 - `HOST=0.0.0.0` — wymagane, żeby Caddy w sieci Compose doszedł do Nest.

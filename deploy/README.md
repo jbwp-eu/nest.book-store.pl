@@ -13,7 +13,7 @@ Plan wdrożenia aplikacji **NestJS + React + PostgreSQL** na AWS z GitHub Action
 | Subnet              | **Public** + auto public IP                          | Proxy (Caddy/NGINX) musi być dostępny z internetu (80/443)                         |
 | PostgreSQL          | **Na tym samym EC2**, `listen_addresses = localhost` | Zgodnie z założeniem; port 5432 **nie** w Security Group                           |
 | Load Balancer (ALB) | **Nie** na start                                     | Koszt + złożoność bez korzyści przy 1 instancji                                    |
-| Lambda              | **Później** (etap 4)                                 | Np. mail po zakupie — [order-confirmation-lambda.md](order-confirmation-lambda.md) |
+| SQS + Lambda        | **Etap 5** (mail po zakupie)                         | Instrukcja: [order-confirmation-lambda.md](order-confirmation-lambda.md)           |
 | Reverse proxy       | **Caddy** (prościej) **lub NGINX**                   | Caddy: [Caddyfile.example](Caddyfile.example); NGINX: [nginx.md](nginx.md)         |
 | S3 + CloudFront     | **Już w projekcie**                                  | Obrazy produktów (admin upload) — zostawić                                         |
 | Elastic IP          | **Opcjonalnie**                                      | Bez EIP: po stop/start EC2 trzeba zaktualizować DNS w Route 53                     |
@@ -495,11 +495,27 @@ Wspólny wzorzec deployu:
 | Usługa              | Zastosowanie                                                                                                         |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | **Elastic IP**      | stały adres EC2                                                                                                      |
-| **Lambda**          | wysyłka maila po zakupie (zamiast SMTP w Nest) — [deploy/order-confirmation-lambda.md](order-confirmation-lambda.md) |
+| **SQS + Lambda**    | mail po zakupie (zamiast SMTP w Nest) — [order-confirmation-lambda.md](order-confirmation-lambda.md)                 |
 | **S3**              | hosting `frontend/dist` + CloudFront (oddzielenie static od API) — opcjonalnie                                       |
 | **Secrets Manager** | `.env.production` zamiast pliku na dysku                                                                             |
-| **CloudWatch**      | logi systemd → agent                                                                                                 |
+| **CloudWatch**      | logi systemd / Docker → agent                                                                                        |
 | **ALB**             | dopiero przy 2+ instancjach Nest                                                                                     |
+
+#### Mail po zakupie — SQS, IAM, Lambda (AWS)
+
+Na **OVH** mail idzie SMTP z Nest (bez kolejki). Na **AWS** (`nest.book-store.pl`) Nest wrzuca wiadomość na SQS; Lambda wysyła SMTP.
+
+Skrót (pełna instrukcja: **[order-confirmation-lambda.md](order-confirmation-lambda.md)**):
+
+1. **SQS** — kolejka Standard `nest-book-store-order-confirmation` (URL + ARN)
+2. **IAM Policy** — `nest-book-store-sqs-send-order-confirmation` (`sqs:SendMessage` na ARN kolejki)
+3. **IAM Role EC2** — `nest-book-store-ec2-role` + attach policy → **Modify IAM role** na instancji (nie `-`)
+4. **Docker** — IMDSv2 **Http put response hop limit = 2**, potem `docker compose up -d --force-recreate nest-api`
+5. **IAM Role Lambda** — `nest-book-store-order-email-lambda-role` + `AWSLambdaSQSQueueExecutionRole`
+6. **Lambda** — funkcja + env `SMTP_*` / `DOMAIN` + trigger SQS; zip: `npm run lambda:package:order-email`
+7. **EC2 env** — w `shared/.env.production`: `ORDER_CONFIRMATION_QUEUE_URL`, `AWS_REGION=eu-central-1`, `TO_3`
+
+Weryfikacja: w logach Nest `order confirmation email enqueued`, potem CloudWatch Lambdy i skrzynka.
 
 ### Etap 6 — własny VPC
 
@@ -530,6 +546,7 @@ docker compose up -d
 | CD                               | `[.github/workflows/deploy-ec2-docker.yml](../.github/workflows/deploy-ec2-docker.yml)` |
 | EC2                              | **t3.small**, SG: 22 / 80 / 443                                                         |
 | Variable                         | `AWS_DEPLOY_BASE_URL=https://nest.book-store.pl`                                        |
+| Mail po zakupie                  | Rola IAM + SQS + hop limit 2 — [order-confirmation-lambda.md](order-confirmation-lambda.md) |
 
 Stary workflow `deploy-ec2.yml` (systemd) zostaje jako v1 / archiwum — produkcja Docker = `deploy-ec2-docker.yml`.
 

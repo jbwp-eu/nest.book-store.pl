@@ -94,7 +94,7 @@ jobs:
           DB_USERNAME=postgres
           DB_PASSWORD=postgres
           DB_NAME=bookstore
-          JWT_SECRET=ci-jwt-secret
+          JWT_SECRET=ci-jwt-secret-must-be-at-least-32-chars
           DEPLOY_TARGET=ovh
           STRIPE_SECRET_KEY_TEST_MODE_OVH=sk_test_ci_dummy
           STRIPE_WEBHOOK_SECRET_TEST_MODE_OVH=whsec_ci_dummy

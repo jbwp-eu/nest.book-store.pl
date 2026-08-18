@@ -83,7 +83,7 @@ Admin account after import:
 |----------|-------------|-------|
 | `PORT` | HTTP port | default `3004` |
 | `DB_*` | PostgreSQL | required |
-| `JWT_SECRET` | JWT token signing | required |
+| `JWT_SECRET` | JWT token signing | required, min. 32 chars (not the `.env.example` placeholder) |
 | `PAGINATION_LIMIT` | Product page size | default `5` |
 | `TAX` | Tax rate (e.g. `0.15`) | default `0` |
 | `CURRENCY` | Store currency (only `PLN`) | `GET /api/config` |

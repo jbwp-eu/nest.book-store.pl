@@ -83,7 +83,7 @@ Konto admina po imporcie:
 |---------|------|--------|
 | `PORT` | Port HTTP | domyślnie `3004` |
 | `DB_*` | PostgreSQL | wymagane |
-| `JWT_SECRET` | Podpis tokenów JWT | wymagane |
+| `JWT_SECRET` | Podpis tokenów JWT | wymagane, min. 32 znaki (nie placeholder z `.env.example`) |
 | `PAGINATION_LIMIT` | Rozmiar strony produktów | domyślnie `5` |
 | `TAX` | Stawka podatku (np. `0.15`) | domyślnie `0` |
 | `CURRENCY` | Waluta sklepu (tylko `PLN`) | `GET /api/config` |
