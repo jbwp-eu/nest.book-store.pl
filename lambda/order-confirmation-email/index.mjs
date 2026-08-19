@@ -1,12 +1,25 @@
 import nodemailer from "nodemailer";
 
+/**
+ * Shared order-confirmation Lambda for nest + gql.
+ * Keep this file identical in both repos.
+ * Each AWS function still has its own SQS trigger / ORDER_CONFIRMATION_QUEUE_URL.
+ *
+ * Payload: language "pl" | "en" (default pl).
+ * Address: gql { name, addressLine1, addressLine2, postalCode, city, country }
+ *       or nest { address, city, code }.
+ */
+
 const {
   SMTP_HOST,
   SMTP_PORT,
   SMTP_USER,
   SMTP_PASSWORD,
   SMTP_SECURE,
+  EMAIL_FROM,
+  MAIL_FROM_LOCAL,
   DOMAIN,
+  CURRENCY = "PLN",
   STORE_NAME = "BookStore",
 } = process.env;
 
@@ -14,6 +27,11 @@ function requireEnv(name, value) {
   if (!value || String(value).trim() === "") {
     throw new Error(`Missing required environment variable: ${name}`);
   }
+}
+
+function resolveLanguage(raw) {
+  const v = String(raw ?? "").trim().toLowerCase();
+  return v === "en" ? "en" : "pl";
 }
 
 function parseMessage(body) {
@@ -34,7 +52,9 @@ function parseMessage(body) {
     paidAt,
     items,
     shippingAddress,
+    currency,
     adminEmail,
+    language,
   } = parsed;
 
   if (!orderId || typeof orderId !== "string") {
@@ -60,70 +80,110 @@ function parseMessage(body) {
     paidAt: typeof paidAt === "string" ? paidAt : new Date().toISOString(),
     items,
     shippingAddress,
+    currency: typeof currency === "string" && currency.trim() ? currency.trim() : CURRENCY,
     adminEmail:
       typeof adminEmail === "string" && adminEmail.trim()
         ? adminEmail.trim()
         : undefined,
+    language: resolveLanguage(language),
   };
 }
 
-function formatItems(items) {
+function formatItems(items, currency) {
   return items
     .map((item) => {
       const title = String(item.title ?? "Item");
       const qty = Number(item.quantity ?? 0);
       const price = Number(item.price ?? 0);
-      return `  - ${title} x${qty} @ ${price.toFixed(2)} PLN`;
+      return `  - ${title} x${qty} @ ${price.toFixed(2)} ${currency}`;
     })
     .join("\n");
 }
 
 function formatAddress(addr) {
-  return [addr.address, `${addr.code} ${addr.city}`].filter(Boolean).join("\n");
+  const line1 = addr.addressLine1 || addr.address;
+  const postal = addr.postalCode || addr.code;
+  const cityLine = [postal, addr.city].filter(Boolean).join(" ").trim();
+  const lines = [
+    addr.name,
+    line1,
+    addr.addressLine2 || null,
+    cityLine || null,
+    addr.country,
+  ].filter(Boolean);
+  return lines.join("\n");
+}
+
+function money(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : null;
 }
 
 function buildEmailContent(msg) {
-  const shortId = msg.orderId.slice(-6);
-  const subject = `Potwierdzenie zakupu — zamówienie ...${shortId}`;
-  const itemsTotal = Number.isFinite(msg.itemsPrice)
-    ? msg.itemsPrice.toFixed(2)
-    : String(msg.itemsPrice);
-  const shippingTotal = Number.isFinite(msg.shippingPrice)
-    ? msg.shippingPrice.toFixed(2)
-    : String(msg.shippingPrice);
-  const orderTotal = Number.isFinite(msg.totalPrice)
-    ? msg.totalPrice.toFixed(2)
-    : String(msg.totalPrice);
+  const shortId =
+    msg.orderId.length > 8 ? msg.orderId.slice(-8) : msg.orderId;
+  const itemsTotal = money(msg.itemsPrice);
+  const shippingTotal = money(msg.shippingPrice);
+  const orderTotal = money(msg.totalPrice) ?? String(msg.totalPrice);
+  const cur = msg.currency;
+  const address = formatAddress(msg.shippingAddress);
+  const itemsBlock = formatItems(msg.items, cur);
+  const pl = msg.language !== "en";
+
+  const subject = pl
+    ? `Potwierdzenie zakupu — zamówienie …${shortId}`
+    : `Order confirmation — …${shortId}`;
+
+  const totals = [];
+  if (itemsTotal) {
+    totals.push(pl ? `Produkty: ${itemsTotal} ${cur}` : `Items: ${itemsTotal} ${cur}`);
+  }
+  if (shippingTotal) {
+    totals.push(pl ? `Dostawa: ${shippingTotal} ${cur}` : `Shipping: ${shippingTotal} ${cur}`);
+  }
+  totals.push(pl ? `Zapłacono: ${orderTotal} ${cur}` : `Paid: ${orderTotal} ${cur}`);
 
   const text = [
-    `Witaj ${msg.userName},`,
+    pl ? `Witaj ${msg.userName},` : `Hello ${msg.userName},`,
     "",
-    `Dziękujemy za zakup w ${STORE_NAME}. Otrzymaliśmy płatność za Twoje zamówienie.`,
+    pl
+      ? `Dziękujemy za zakup w ${STORE_NAME}. Otrzymaliśmy płatność za Twoje zamówienie.`
+      : `Thank you for your order at ${STORE_NAME}. We have received your payment.`,
     "",
-    `ID zamówienia: ...${shortId}`,
-    `Data: ${msg.paidAt}`,
+    pl ? `ID zamówienia: ${msg.orderId}` : `Order ID: ${msg.orderId}`,
+    pl ? `Data: ${msg.paidAt}` : `Paid at: ${msg.paidAt}`,
     "",
-    "Produkty:",
-    formatItems(msg.items),
+    pl ? "Produkty:" : "Items:",
+    itemsBlock,
     "",
-    `Produkty: ${itemsTotal} PLN`,
-    `Dostawa: ${shippingTotal} PLN`,
-    `Zapłacono: ${orderTotal} PLN`,
+    ...totals,
     "",
-    "Adres dostawy:",
-    formatAddress(msg.shippingAddress),
+    pl ? "Adres dostawy:" : "Shipping address:",
+    address,
     "",
-    "W razie pytań odpowiedz na ten e-mail lub skontaktuj się przez stronę sklepu.",
+    pl
+      ? "W razie pytań odpowiedz na ten e-mail lub skontaktuj się przez stronę sklepu."
+      : "If you have questions, reply to this email or contact us through the store website.",
   ].join("\n");
 
   return { subject, text };
+}
+
+function mailFrom() {
+  if (EMAIL_FROM && EMAIL_FROM.trim()) {
+    return EMAIL_FROM.trim();
+  }
+  if (DOMAIN && DOMAIN.trim()) {
+    const local = (MAIL_FROM_LOCAL || "nest").trim();
+    return `${local}@${DOMAIN.trim()}`;
+  }
+  throw new Error("Missing EMAIL_FROM or DOMAIN");
 }
 
 function createTransport() {
   requireEnv("SMTP_HOST", SMTP_HOST);
   requireEnv("SMTP_USER", SMTP_USER);
   requireEnv("SMTP_PASSWORD", SMTP_PASSWORD);
-  requireEnv("DOMAIN", DOMAIN);
+  mailFrom();
 
   const port = SMTP_PORT ? Number(SMTP_PORT) : 465;
   const secure =
@@ -148,6 +208,7 @@ export async function handler(event) {
   }
 
   const transport = createTransport();
+  const from = `"${STORE_NAME}" <${mailFrom()}>`;
 
   for (const record of records) {
     const msg = parseMessage(record.body);
@@ -157,8 +218,7 @@ export async function handler(event) {
       : msg.userEmail;
 
     await transport.sendMail({
-      from: `"${STORE_NAME}" <nest@${DOMAIN}>`,
-
+      from,
       to,
       subject,
       text,
@@ -167,6 +227,7 @@ export async function handler(event) {
     console.log("Order confirmation email sent", {
       orderId: msg.orderId,
       to: msg.userEmail,
+      language: msg.language,
     });
   }
 }

@@ -20,6 +20,7 @@ export type OrderConfirmationMessage = {
     code: string;
   };
   adminEmail?: string;
+  language: 'pl' | 'en';
 };
 
 @Injectable()
@@ -41,7 +42,10 @@ export class OrderConfirmationQueueService {
     return Boolean(url);
   }
 
-  async tryEnqueue(orderId: string): Promise<boolean> {
+  async tryEnqueue(
+    orderId: string,
+    language: 'pl' | 'en' = 'pl',
+  ): Promise<boolean> {
     const queueUrl = this.configService
       .get<string>('ORDER_CONFIRMATION_QUEUE_URL')
       ?.trim();
@@ -59,7 +63,7 @@ export class OrderConfirmationQueueService {
       return true;
     }
 
-    const message = this.orderToMessage(order);
+    const message = this.orderToMessage(order, language);
     if (!message) {
       this.logger.warn(
         `order confirmation skipped: no customer email for ${orderId}`,
@@ -95,7 +99,10 @@ export class OrderConfirmationQueueService {
     return this.sqsClient;
   }
 
-  private orderToMessage(order: Order): OrderConfirmationMessage | null {
+  private orderToMessage(
+    order: Order,
+    language: 'pl' | 'en' = 'pl',
+  ): OrderConfirmationMessage | null {
     const userEmail = order.User?.email?.trim();
     if (!userEmail) {
       return null;
@@ -118,6 +125,7 @@ export class OrderConfirmationQueueService {
       })),
       shippingAddress: order.shippingAddress,
       ...(adminEmail ? { adminEmail } : {}),
+      language: language === 'en' ? 'en' : 'pl',
     };
   }
 }

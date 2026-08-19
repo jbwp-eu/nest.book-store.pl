@@ -14,7 +14,7 @@ import {
 
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 
-import { I18nService } from 'nestjs-i18n';
+import { I18nContext, I18nService } from 'nestjs-i18n';
 
 import { DataSource, Repository } from 'typeorm';
 
@@ -134,9 +134,11 @@ export class PaymentsService {
       );
     }
 
+    const language = this.emailLanguage();
     const paymentIntent = await this.stripeService.createPaymentIntent(
       amount,
       'pln',
+      { language },
     );
 
     order.stripePaymentIntentId = paymentIntent.id;
@@ -199,7 +201,10 @@ export class PaymentsService {
 
     try {
     //  this.mailService.sendPurchaseReceipt(result.orderId);
-      await this.notifyPurchaseReceipt(result.orderId);
+      await this.notifyPurchaseReceipt(
+        result.orderId,
+        this.emailLanguage(paymentIntent.metadata?.language),
+      );
     } catch (err) {
 
       this.logger.warn(
@@ -227,8 +232,23 @@ export class PaymentsService {
   }
 
 
-  private async notifyPurchaseReceipt(orderId: string): Promise<void> {
-    const enqueued = await this.orderConfirmationQueue.tryEnqueue(orderId);
+  private emailLanguage(raw?: string | null): 'pl' | 'en' {
+    const fromRaw = String(raw ?? '').trim().toLowerCase();
+    if (fromRaw === 'en' || fromRaw === 'pl') {
+      return fromRaw;
+    }
+    const lang = String(I18nContext.current()?.lang ?? '').toLowerCase();
+    return lang.startsWith('en') ? 'en' : 'pl';
+  }
+
+  private async notifyPurchaseReceipt(
+    orderId: string,
+    language: 'pl' | 'en' = 'pl',
+  ): Promise<void> {
+    const enqueued = await this.orderConfirmationQueue.tryEnqueue(
+      orderId,
+      language,
+    );
     if (enqueued) {
       return;
     }

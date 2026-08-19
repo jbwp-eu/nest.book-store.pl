@@ -21,11 +21,13 @@ export class StripeService {
   createPaymentIntent(
     amount: number,
     currency: string,
+    metadata?: Record<string, string>,
   ): Promise<StripePaymentIntent> {
     return this.stripe.paymentIntents.create({
       amount,
       currency,
       payment_method_types: ['card'],
+      ...(metadata ? { metadata } : {}),
     });
   }
 

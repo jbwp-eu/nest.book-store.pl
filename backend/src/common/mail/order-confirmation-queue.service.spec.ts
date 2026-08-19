@@ -109,8 +109,25 @@ describe('OrderConfirmationQueueService', () => {
       shippingPrice: 10,
       totalPrice: 59.99,
       adminEmail: 'admin@test.pl',
+      language: 'pl',
     });
     expect(body.items).toHaveLength(1);
     expect(body.shippingAddress.city).toBe('Warszawa');
+  });
+
+  it('enqueues language en when tryEnqueue is called with en', async () => {
+    configGet.mockImplementation((key: string) => {
+      if (key === 'ORDER_CONFIRMATION_QUEUE_URL') {
+        return 'https://sqs.eu-central-1.amazonaws.com/123/nest-book-store-order-confirmation';
+      }
+      if (key === 'AWS_REGION') return 'eu-central-1';
+      return undefined;
+    });
+    orderRepository.findOne.mockResolvedValue(sampleOrder);
+
+    await expect(service.tryEnqueue('order-1', 'en')).resolves.toBe(true);
+
+    const input = send.mock.calls[0][0] as { MessageBody: string };
+    expect(JSON.parse(input.MessageBody).language).toBe('en');
   });
 });
