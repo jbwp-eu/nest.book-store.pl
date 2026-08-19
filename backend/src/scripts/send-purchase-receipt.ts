@@ -4,8 +4,9 @@ import { MailService } from '../common/mail/mail.service';
 
 async function main() {
   const orderId = process.argv[2];
+  const language = process.argv[3] === 'en' ? 'en' : 'pl';
   if (!orderId) {
-    console.error('Usage: npm run mail:receipt -- <orderId>');
+    console.error('Usage: npm run mail:receipt -- <orderId> [pl|en]');
     process.exit(1);
   }
 
@@ -15,7 +16,7 @@ async function main() {
   const mail = app.get(MailService);
 
   try {
-    const result = await mail.sendPurchaseReceipt(orderId);
+    const result = await mail.sendPurchaseReceipt(orderId, language);
     console.log('OK:', result);
   } catch (err) {
     console.error('Error:', err);

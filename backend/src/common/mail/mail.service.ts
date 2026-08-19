@@ -6,6 +6,8 @@ import * as nodemailer from 'nodemailer';
 import { Repository } from 'typeorm';
 import { Order } from '../../orders/order.entity';
 
+export type MailLanguage = 'pl' | 'en';
+
 @Injectable()
 export class MailService {
   constructor(
@@ -15,36 +17,46 @@ export class MailService {
     private readonly i18n: I18nService,
   ) {}
 
-  async sendPurchaseReceipt(orderId: string): Promise<{ message: string }> {
+  async sendPurchaseReceipt(
+    orderId: string,
+    language: MailLanguage = 'pl',
+  ): Promise<{ message: string }> {
+    const lang = language === 'en' ? 'en' : 'pl';
     const order = await this.orderRepository.findOne({
       where: { id: orderId },
-      relations: { User: true },
+      relations: { User: true, OrderItems: true },
     });
 
     if (!order) {
-      throw new NotFoundException(this.i18n.t('messages.orderNotFound'));
+      throw new NotFoundException(
+        this.t('messages.orderNotFound', lang),
+      );
     }
 
-    const date = new Date().toLocaleString();
     const domain = this.configService.get<string>('DOMAIN');
     const toAdmin = this.configService.get<string>('TO_3');
-    const shippingPrice = Number(order.shippingPrice);
+    const storeName =
+      this.configService.get<string>('STORE_NAME')?.trim() || 'BookStore';
+    const { subject, text, html } = this.buildReceiptContent(
+      order,
+      lang,
+      storeName,
+    );
+
+    const to = toAdmin?.trim()
+      ? `<${order.User.email}>,<${toAdmin}>`
+      : `<${order.User.email}>`;
 
     await this.createTransporter().sendMail({
-      from: `"BookStore" <nest@${domain}>`,
-      to: `<${order.User.email}>,<${toAdmin}>`,
-      subject: this.i18n.t('messages.purchaseReceiptSubject'),
-      html: this.buildReceiptHtml(
-        order.id,
-        date,
-        order.itemsPrice,
-        shippingPrice,
-        order.totalPrice,
-      ),
+      from: `"${storeName}" <nest@${domain}>`,
+      to,
+      subject,
+      text,
+      html,
     });
 
     return {
-      message: this.i18n.t('messages.paymentSuccessful'),
+      message: this.t('messages.paymentSuccessful', lang),
     };
   }
 
@@ -66,6 +78,14 @@ export class MailService {
     return { messageId: info.messageId };
   }
 
+  private t(
+    key: string,
+    lang: MailLanguage,
+    args?: Record<string, string | number>,
+  ): string {
+    return this.i18n.t(key, { lang, args });
+  }
+
   private createTransporter() {
     const host = this.configService.get<string>('SMTP_HOST');
     const port = Number(this.configService.get<string>('SMTP_PORT', '465'));
@@ -84,78 +104,137 @@ export class MailService {
     });
   }
 
-  private buildReceiptHtml(
-    orderId: string,
-    date: string,
-    itemsPrice: number,
-    shippingPrice: number,
-    totalPrice: number,
-  ): string {
-    const orderIdLabel = this.i18n.t('messages.purchaseReceiptOrderId');
-    const dateLabel = this.i18n.t('messages.purchaseReceiptDate');
-    const itemsLabel = this.i18n.t('messages.purchaseReceiptItems');
-    const shippingLabel = this.i18n.t('messages.purchaseReceiptShipping');
-    const paidLabel = this.i18n.t('messages.purchaseReceiptPaid');
-    const title = this.i18n.t('messages.purchaseReceiptTitle');
+  private money(value: number): string | null {
+    return Number.isFinite(value) ? value.toFixed(2) : null;
+  }
 
-    return `<head>
+  private formatItems(
+    items: Array<{ title: string; quantity: number; price: number }>,
+    currency: string,
+  ): string {
+    return items
+      .map((item) => {
+        const title = String(item.title ?? 'Item');
+        const qty = Number(item.quantity ?? 0);
+        const price = Number(item.price ?? 0);
+        return `  - ${title} x${qty} @ ${price.toFixed(2)} ${currency}`;
+      })
+      .join('\n');
+  }
+
+  private formatAddress(addr: {
+    address?: string;
+    city?: string;
+    code?: string;
+  }): string {
+    const cityLine = [addr.code, addr.city].filter(Boolean).join(' ').trim();
+    return [addr.address, cityLine || null].filter(Boolean).join('\n');
+  }
+
+  private buildReceiptContent(
+    order: Order,
+    lang: MailLanguage,
+    storeName: string,
+  ): { subject: string; text: string; html: string } {
+    const shortId =
+      order.id.length > 8 ? order.id.slice(-8) : order.id;
+    const currency =
+      this.configService.get<string>('CURRENCY')?.trim() || 'PLN';
+    const userName = order.User?.name?.trim() || (lang === 'en' ? 'Customer' : 'Kliencie');
+    const paidAt = (order.paidAt ?? new Date()).toISOString();
+    const items = (order.OrderItems ?? []).map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+      price: Number(item.price),
+    }));
+    const itemsBlock = this.formatItems(items, currency);
+    const address = this.formatAddress(order.shippingAddress ?? {});
+    const itemsTotal = this.money(Number(order.itemsPrice));
+    const shippingTotal = this.money(Number(order.shippingPrice));
+    const orderTotal =
+      this.money(Number(order.totalPrice)) ?? String(order.totalPrice);
+
+    const subject = this.t('messages.purchaseReceiptSubject', lang, {
+      shortId,
+    });
+
+    const totals: string[] = [];
+    if (itemsTotal) {
+      totals.push(
+        this.t('messages.purchaseReceiptItemsTotal', lang, {
+          amount: itemsTotal,
+          currency,
+        }),
+      );
+    }
+    if (shippingTotal) {
+      totals.push(
+        this.t('messages.purchaseReceiptShipping', lang, {
+          amount: shippingTotal,
+          currency,
+        }),
+      );
+    }
+    totals.push(
+      this.t('messages.purchaseReceiptPaid', lang, {
+        amount: orderTotal,
+        currency,
+      }),
+    );
+
+    const text = [
+      this.t('messages.purchaseReceiptHello', lang, { name: userName }),
+      '',
+      this.t('messages.purchaseReceiptThanks', lang, { store: storeName }),
+      '',
+      this.t('messages.purchaseReceiptOrderId', lang, { orderId: order.id }),
+      this.t('messages.purchaseReceiptDate', lang, { date: paidAt }),
+      '',
+      this.t('messages.purchaseReceiptItems', lang),
+      itemsBlock,
+      '',
+      ...totals,
+      '',
+      this.t('messages.purchaseReceiptShippingAddress', lang),
+      address,
+      '',
+      this.t('messages.purchaseReceiptFooter', lang),
+    ].join('\n');
+
+    const itemsHtml = items
+      .map(
+        (item) =>
+          `<li>${item.title} x${item.quantity} @ ${Number(item.price).toFixed(2)} ${currency}</li>`,
+      )
+      .join('');
+
+    const html = `<head>
                 <meta charset="UTF-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Purchase Receipt</title>
+                <title>${this.t('messages.purchaseReceiptTitle', lang)}</title>
                 <style>
-                  h2 {
-                    color: gray;
-                  }
-                  section {
-                    padding: 5px;
-                  }
-                  table {
-                    width: 90%;
-                    }
-                  th {
-                    font-weight: 400;
-                    text-align: left;
-                    color: grey;
-                  }
-                  td {
-                    font-weight: 300;
-                    color: grey;
-                    text-align: right;
-                  }
-                  tr {
-                    justify-content: space-between;
-                  }
-                  #totalPrice {
-                    font-weight: 700;
-                  }
+                  h2 { color: gray; }
+                  section { padding: 5px; }
+                  p, li, pre { color: grey; }
+                  pre { font-family: inherit; white-space: pre-wrap; }
                 </style>
             </head>
             <body>
               <section>
-                <h2>${title}</h2>
-                <table>
-                  <tr>
-                    <th>${orderIdLabel}</th>
-                    <td>...${orderId.substring(orderId.length - 6)};</td>
-                  </tr>
-                  <tr>
-                    <th>${dateLabel}</th>
-                    <td>${date};</td>
-                  </tr>
-                  <tr>
-                    <th>${itemsLabel}</th>
-                    <td>${itemsPrice}; PLN</td>
-                  </tr>
-                  <tr>
-                    <th>${shippingLabel}</th>
-                    <td>${shippingPrice.toFixed(2)}; PLN</td>
-                  </tr>
-                  <tr>
-                    <th>${paidLabel}</th>
-                    <td id="totalPrice">${totalPrice}; PLN</td>
-                  </tr>
-                </table>
+                <h2>${this.t('messages.purchaseReceiptTitle', lang)}</h2>
+                <p>${this.t('messages.purchaseReceiptHello', lang, { name: userName })}</p>
+                <p>${this.t('messages.purchaseReceiptThanks', lang, { store: storeName })}</p>
+                <p>${this.t('messages.purchaseReceiptOrderId', lang, { orderId: order.id })}</p>
+                <p>${this.t('messages.purchaseReceiptDate', lang, { date: paidAt })}</p>
+                <p>${this.t('messages.purchaseReceiptItems', lang)}</p>
+                <ul>${itemsHtml}</ul>
+                ${totals.map((line) => `<p>${line}</p>`).join('')}
+                <p>${this.t('messages.purchaseReceiptShippingAddress', lang)}</p>
+                <pre>${address}</pre>
+                <p>${this.t('messages.purchaseReceiptFooter', lang)}</p>
               </section>
             </body>`;
+
+    return { subject, text, html };
   }
 }
