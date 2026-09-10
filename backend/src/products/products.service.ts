@@ -24,6 +24,7 @@ import { ProductReview } from './product-review.entity';
 import { Product } from './product.entity';
 import {
   CloudFrontConfig,
+  withSignedAssets,
   withSignedBanners,
   withSignedImages,
 } from './utils/sign-product-assets';
@@ -100,7 +101,7 @@ export class ProductsService {
       throw new NotFoundException(this.i18n.t('messages.productNotFound'));
     }
 
-    return withSignedImages(product, this.getCloudFrontConfig());
+    return withSignedAssets(product, this.getCloudFrontConfig());
   }
 
   async createReview(

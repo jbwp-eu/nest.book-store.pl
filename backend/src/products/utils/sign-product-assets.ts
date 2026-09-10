@@ -53,3 +53,10 @@ export function withSignedBanners(
   }
   return { ...product, banners };
 }
+
+export function withSignedAssets(
+  product: Product,
+  config: CloudFrontConfig,
+): Product {
+  return withSignedBanners(withSignedImages(product, config), config);
+}
